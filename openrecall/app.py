@@ -159,7 +159,18 @@ def timeline():
     # connect to db
     timestamps = get_timestamps()
     entries = get_all_entries()
-    entries_dict = {entry.timestamp: entry for entry in entries}
+    # Convert entries to dict without embedding (numpy array)
+    entries_dict = {
+        entry.timestamp: {
+            'id': entry.id,
+            'app': entry.app,
+            'title': entry.title,
+            'text': entry.text,
+            'timestamp': entry.timestamp,
+            'words_coords': entry.words_coords
+        }
+        for entry in entries
+    }
     return render_template_string(
         """
 {% extends "base_template" %}
@@ -172,9 +183,9 @@ def timeline():
     </div>
     <div class="row flex-grow-1" style="overflow: hidden;">
       <div class="col-md-8" style="height: 100%; overflow-y: auto; display: flex; align-items: center; justify-content: center; position: relative;">
-        <div id="imageWrapper" style="position: relative; display: inline-block;">
+        <div style="position: relative;">
           <img id="timestampImage" src="/static/{{timestamps[0]}}.webp" alt="Image for timestamp" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;">
-          <div id="textOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+          <div id="textOverlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
         </div>
       </div>
       <div class="col-md-4 p-3 bg-light border-left" style="height: 100%; overflow-y: auto;">
@@ -263,11 +274,19 @@ def timeline():
 
     function renderTextOverlay() {
       textOverlay.innerHTML = '';
-      if (!showOverlayCheckbox.checked || !currentEntry || !currentEntry.words_coords) return;
+      if (!showOverlayCheckbox.checked || !currentEntry || !currentEntry.words_coords || currentEntry.words_coords.length === 0) {
+        return;
+      }
       
       const img = timestampImage;
-      const displayWidth = img.width;
-      const displayHeight = img.height;
+      
+      // Get actual rendered dimensions of the image
+      const displayWidth = img.clientWidth;
+      const displayHeight = img.clientHeight;
+      
+      // Make overlay match image size exactly
+      textOverlay.style.width = displayWidth + 'px';
+      textOverlay.style.height = displayHeight + 'px';
       
       const blocks = groupWordsIntoBlocks(currentEntry.words_coords);
       
@@ -275,8 +294,17 @@ def timeline():
         const icon = document.createElement('div');
         icon.className = 'text-block-icon';
         icon.innerHTML = '<i class="bi bi-file-text"></i>';
-        icon.style.left = (block.x1 * displayWidth) + 'px';
-        icon.style.top = (block.y1 * displayHeight) + 'px';
+        
+        // Center the icon on the block
+        const blockWidth = (block.x2 - block.x1) * displayWidth;
+        const blockHeight = (block.y2 - block.y1) * displayHeight;
+        const iconSize = 32;
+        
+        const left = block.x1 * displayWidth + blockWidth / 2 - iconSize / 2;
+        const top = block.y1 * displayHeight + blockHeight / 2 - iconSize / 2;
+        
+        icon.style.left = left + 'px';
+        icon.style.top = top + 'px';
         icon.title = 'Click to view text';
         icon.onclick = () => showTextPopup(block.text);
         textOverlay.appendChild(icon);
@@ -348,11 +376,22 @@ def timeline():
 def search():
     q = request.args.get("q")
     entries = get_all_entries()
-    embeddings = [np.frombuffer(entry.embedding, dtype=np.float32) for entry in entries]
+    embeddings = [entry.embedding for entry in entries]
     query_embedding = get_embedding(q)
     similarities = [cosine_similarity(query_embedding, emb) for emb in embeddings]
     indices = np.argsort(similarities)[::-1]
-    sorted_entries = [entries[i] for i in indices]
+    # Convert entries to dict without embedding (numpy array)
+    sorted_entries = [
+        {
+            'id': entries[i].id,
+            'app': entries[i].app,
+            'title': entries[i].title,
+            'text': entries[i].text,
+            'timestamp': entries[i].timestamp,
+            'words_coords': entries[i].words_coords
+        }
+        for i in indices
+    ]
 
     return render_template_string(
         """
@@ -489,8 +528,14 @@ def search():
                                                 const icon = document.createElement('div');
                                                 icon.className = 'text-block-icon';
                                                 icon.innerHTML = '<i class="bi bi-file-text"></i>';
-                                                icon.style.left = (block.x1 * displayWidth) + 'px';
-                                                icon.style.top = (block.y1 * displayHeight) + 'px';
+                                                
+                                                // Center the icon on the block
+                                                const blockWidth = (block.x2 - block.x1) * displayWidth;
+                                                const blockHeight = (block.y2 - block.y1) * displayHeight;
+                                                const iconSize = 32;
+                                                
+                                                icon.style.left = (block.x1 * displayWidth + blockWidth / 2 - iconSize / 2) + 'px';
+                                                icon.style.top = (block.y1 * displayHeight + blockHeight / 2 - iconSize / 2) + 'px';
                                                 icon.title = 'Click to view text';
                                                 icon.onclick = () => showModalTextPopup{{ loop.index0 }}(block.text);
                                                 overlay.appendChild(icon);
@@ -499,7 +544,7 @@ def search():
                                         
                                         img.onload = renderModalOverlay;
                                         checkbox.addEventListener('change', renderModalOverlay);
-                                        $('#modal-{{ loop.index0 }}').on('shown.bs.modal', renderModalOverlay);
+                                        document.getElementById('modal-{{ loop.index0 }}').addEventListener('shown.bs.modal', renderModalOverlay);
                                     })();
                                     
                                     function copyText{{ loop.index0 }}() {
