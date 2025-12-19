@@ -68,6 +68,48 @@ base_template = """
       background: rgba(0, 123, 255, 1);
       transform: scale(1.1);
     }
+    .home-icon {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 1100;
+      background: white;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .home-icon:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .toggle-sidebar-btn {
+      position: fixed;
+      top: 75px;
+      right: 15px;
+      z-index: 1100;
+      background: white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid #007bff;
+    }
+    .toggle-sidebar-btn:hover {
+      transform: scale(1.1);
+      background: #007bff;
+      color: white;
+    }
     .text-popup {
       position: fixed;
       top: 50%;
@@ -120,6 +162,9 @@ base_template = """
   </style>
 </head>
 <body>
+<a href="/" class="home-icon" title="Home">
+  <i class="bi bi-house-fill" style="font-size: 1.5rem; color: #007bff;"></i>
+</a>
 <nav class="navbar navbar-light bg-light">
   <div class="container">
     <form class="form-inline my-2 my-lg-0 w-100 d-flex" action="/search" method="get">
@@ -176,32 +221,42 @@ def timeline():
 {% extends "base_template" %}
 {% block content %}
 {% if timestamps|length > 0 %}
+  <div class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+    <i id="sidebarToggleIcon" class="bi bi-chevron-left"></i>
+  </div>
   <div class="container-fluid" style="height: calc(100vh - 100px); display: flex; flex-direction: column;">
     <div class="slider-container">
       <input type="range" class="slider custom-range" id="discreteSlider" min="0" max="{{timestamps|length - 1}}" step="1" value="{{timestamps|length - 1}}">
       <div class="slider-value" id="sliderValue">{{timestamps[0] | timestamp_to_human_readable }}</div>
     </div>
-    <div class="row flex-grow-1" style="overflow: hidden;">
-      <div class="col-md-8" style="height: 100%; overflow-y: auto; display: flex; align-items: center; justify-content: center; position: relative;">
+    <div class="row flex-grow-1" style="overflow: hidden; margin: 0;">
+      <div id="imageColumn" class="col-md-8" style="height: 100%; overflow-y: auto; display: flex; align-items: center; justify-content: center; position: relative; transition: all 0.3s;">
         <div style="position: relative;">
           <img id="timestampImage" src="/static/{{timestamps[0]}}.webp" alt="Image for timestamp" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;">
           <div id="textOverlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
         </div>
       </div>
-      <div class="col-md-4 p-3 bg-light border-left" style="height: 100%; overflow-y: auto;">
+      <div id="sidebarColumn" class="col-md-4 p-3 bg-light border-left" style="height: 100%; overflow-y: auto; display: flex; flex-direction: column; transition: all 0.3s;">
         <div class="mb-3">
           <label class="d-flex align-items-center">
             <input type="checkbox" id="showOverlay" checked class="mr-2">
             <span>Show text blocks on image</span>
           </label>
         </div>
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <strong>All Extracted Text:</strong>
-          <button class="btn btn-sm btn-outline-primary" onclick="copyCurrentText()">
-            <i class="bi bi-clipboard"></i> Copy All
-          </button>
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer; user-select: none;" onclick="toggleTextPanel()">
+            <strong>All Extracted Text</strong>
+            <i id="toggleIcon" class="bi bi-chevron-up"></i>
+          </div>
+          <div id="textPanel" class="card-body" style="max-height: 300px; overflow-y: auto;">
+            <div class="d-flex justify-content-end mb-2">
+              <button class="btn btn-sm btn-outline-primary" onclick="copyCurrentText()">
+                <i class="bi bi-clipboard"></i> Copy All
+              </button>
+            </div>
+            <pre id="extractedText" style="white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 0.9em; user-select: text;"></pre>
+          </div>
         </div>
-        <pre id="extractedText" style="white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 0.9em; user-select: text;"></pre>
       </div>
     </div>
     
@@ -346,6 +401,38 @@ def timeline():
     
     showOverlayCheckbox.addEventListener('change', renderTextOverlay);
     window.addEventListener('resize', renderTextOverlay);
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebarColumn');
+      const imageCol = document.getElementById('imageColumn');
+      const icon = document.getElementById('sidebarToggleIcon');
+      
+      if (sidebar.style.display === 'none') {
+        sidebar.style.display = 'flex';
+        imageCol.className = 'col-md-8';
+        icon.className = 'bi bi-chevron-left';
+      } else {
+        sidebar.style.display = 'none';
+        imageCol.className = 'col-md-12';
+        icon.className = 'bi bi-chevron-right';
+      }
+      
+      // Re-render overlay after layout change
+      setTimeout(renderTextOverlay, 300);
+    }
+
+    function toggleTextPanel() {
+      const panel = document.getElementById('textPanel');
+      const icon = document.getElementById('toggleIcon');
+      
+      if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        icon.className = 'bi bi-chevron-up';
+      } else {
+        panel.style.display = 'none';
+        icon.className = 'bi bi-chevron-down';
+      }
+    }
 
     function copyCurrentText() {
       const text = extractedText.textContent;
