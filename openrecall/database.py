@@ -7,7 +7,7 @@ from typing import Any, List, Optional, Tuple
 from openrecall.config import db_path
 
 # Define the structure of a database entry using namedtuple
-Entry = namedtuple("Entry", ["id", "app", "title", "text", "timestamp", "embedding", "words_coords"])
+Entry = namedtuple("Entry", ["id", "app", "title", "text", "timestamp", "embedding", "words_coords", "ai_text", "ai_words_coords"])
 
 
 def create_db() -> None:
@@ -28,7 +28,9 @@ def create_db() -> None:
                        text TEXT,
                        timestamp INTEGER UNIQUE,
                        embedding BLOB,
-                       words_coords TEXT
+                       words_coords TEXT,
+                       ai_text TEXT,
+                       ai_words_coords TEXT
                    )"""
             )
             # Add index on timestamp for faster lookups
@@ -41,6 +43,10 @@ def create_db() -> None:
             columns = [column[1] for column in cursor.fetchall()]
             if "words_coords" not in columns:
                 cursor.execute("ALTER TABLE entries ADD COLUMN words_coords TEXT DEFAULT '[]'")
+            if "ai_text" not in columns:
+                cursor.execute("ALTER TABLE entries ADD COLUMN ai_text TEXT")
+            if "ai_words_coords" not in columns:
+                cursor.execute("ALTER TABLE entries ADD COLUMN ai_words_coords TEXT")
             
             conn.commit()
     except sqlite3.Error as e:
@@ -60,16 +66,23 @@ def get_all_entries() -> List[Entry]:
         with sqlite3.connect(db_path) as conn:
             conn.row_factory = sqlite3.Row  # Return rows as dictionary-like objects
             cursor = conn.cursor()
-            cursor.execute("SELECT id, app, title, text, timestamp, embedding, words_coords FROM entries ORDER BY timestamp DESC")
+            cursor.execute("SELECT id, app, title, text, timestamp, embedding, words_coords, ai_text, ai_words_coords FROM entries ORDER BY timestamp DESC")
             results = cursor.fetchall()
             for row in results:
                 # Deserialize the embedding blob back into a NumPy array
-                embedding = np.frombuffer(row["embedding"], dtype=np.float32) # Assuming float32, adjust if needed
+                embedding = np.frombuffer(row["embedding"], dtype=np.float32)
                 words_coords_str = row["words_coords"] if row["words_coords"] else "[]"
                 try:
                     words_coords = json.loads(words_coords_str)
                 except (json.JSONDecodeError, TypeError):
                     words_coords = []
+                
+                ai_words_coords_str = row["ai_words_coords"] if row["ai_words_coords"] else "[]"
+                try:
+                    ai_words_coords = json.loads(ai_words_coords_str)
+                except (json.JSONDecodeError, TypeError):
+                    ai_words_coords = []
+                    
                 entries.append(
                     Entry(
                         id=row["id"],
@@ -79,6 +92,8 @@ def get_all_entries() -> List[Entry]:
                         timestamp=row["timestamp"],
                         embedding=embedding,
                         words_coords=words_coords,
+                        ai_text=row["ai_text"],
+                        ai_words_coords=ai_words_coords,
                     )
                 )
     except sqlite3.Error as e:
@@ -105,6 +120,35 @@ def get_timestamps() -> List[int]:
     except sqlite3.Error as e:
         print(f"Database error while fetching timestamps: {e}")
     return timestamps
+
+
+def update_ai_ocr(timestamp: int, ai_text: str, ai_words_coords: List) -> bool:
+    """
+    Updates AI OCR data for an existing entry.
+    
+    Args:
+        timestamp (int): The Unix timestamp of the screenshot.
+        ai_text (str): The AI-extracted text.
+        ai_words_coords (List): List of word coordinates from AI OCR.
+    
+    Returns:
+        bool: True if update was successful, False otherwise.
+    """
+    ai_words_coords_json: str = json.dumps(ai_words_coords) if ai_words_coords else "[]"
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """UPDATE entries 
+                   SET ai_text = ?, ai_words_coords = ?
+                   WHERE timestamp = ?""",
+                (ai_text, ai_words_coords_json, timestamp),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Database error during AI OCR update: {e}")
+        return False
 
 
 def insert_entry(

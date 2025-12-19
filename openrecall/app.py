@@ -1,14 +1,18 @@
 from threading import Thread
+import os
+import base64
 
 import numpy as np
-from flask import Flask, render_template_string, request, send_from_directory
+from flask import Flask, render_template_string, request, send_from_directory, jsonify
 from jinja2 import BaseLoader
+from PIL import Image
 
 from openrecall.config import appdata_folder, screenshots_path
-from openrecall.database import create_db, get_all_entries, get_timestamps
+from openrecall.database import create_db, get_all_entries, get_timestamps, update_ai_ocr
 from openrecall.nlp import cosine_similarity, get_embedding
 from openrecall.screenshot import record_screenshots_thread
 from openrecall.utils import human_readable_time, timestamp_to_human_readable
+from openrecall.ai_ocr import get_ai_provider
 
 app = Flask(__name__)
 
@@ -212,7 +216,9 @@ def timeline():
             'title': entry.title,
             'text': entry.text,
             'timestamp': entry.timestamp,
-            'words_coords': entry.words_coords
+            'words_coords': entry.words_coords,
+            'ai_text': entry.ai_text,
+            'ai_words_coords': entry.ai_words_coords if entry.ai_words_coords else []
         }
         for entry in entries
     }
@@ -243,6 +249,24 @@ def timeline():
             <span>Show text blocks on image</span>
           </label>
         </div>
+        
+        <div class="mb-3">
+          <div class="btn-group btn-group-sm w-100" role="group">
+            <button type="button" class="btn btn-outline-secondary" id="btnBasicOCR" onclick="switchOCRMode('basic')">
+              Basic OCR
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="btnAIOCR" onclick="switchOCRMode('ai')">
+              AI OCR
+            </button>
+          </div>
+          <button class="btn btn-sm btn-success w-100 mt-2" onclick="runAIOCR()" id="btnRunAI">
+            <i class="bi bi-robot"></i> Run AI Text
+          </button>
+          <button class="btn btn-sm btn-secondary w-100 mt-1" onclick="showAIConfig()">
+            <i class="bi bi-gear"></i> AI Settings
+          </button>
+        </div>
+        
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer; user-select: none;" onclick="toggleTextPanel()">
             <strong>All Extracted Text</strong>
@@ -273,6 +297,36 @@ def timeline():
         <button class="btn btn-sm btn-secondary" onclick="closeTextPopup()">Close</button>
         <button class="btn btn-sm btn-primary" onclick="copyPopupText()">
           <i class="bi bi-clipboard"></i> Copy Text
+        </button>
+      </div>
+    </div>
+    
+    <!-- AI Config Modal -->
+    <div class="text-popup-overlay" id="aiConfigOverlay" onclick="closeAIConfig()"></div>
+    <div class="text-popup" id="aiConfigModal">
+      <div class="text-popup-header">
+        <strong>AI OCR Settings</strong>
+        <button type="button" class="close" onclick="closeAIConfig()">&times;</button>
+      </div>
+      <div class="text-popup-body">
+        <div class="form-group">
+          <label>AI Provider</label>
+          <select class="form-control" id="aiProvider">
+            <option value="gemini">Google Gemini</option>
+            <option value="openai">OpenAI (GPT-4o)</option>
+            <option value="claude">Anthropic Claude</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" class="form-control" id="aiApiKey" placeholder="Enter your API key">
+          <small class="form-text text-muted">Your API key is stored locally and never sent to our servers.</small>
+        </div>
+      </div>
+      <div class="text-popup-footer">
+        <button class="btn btn-sm btn-secondary" onclick="closeAIConfig()">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="saveAIConfig()">
+          <i class="bi bi-save"></i> Save
         </button>
       </div>
     </div>
@@ -441,6 +495,149 @@ def timeline():
       });
     }
 
+    // AI OCR functionality
+    let currentOCRMode = 'basic';
+    let aiConfig = null;
+    
+    // Load AI config on startup
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(config => {
+        aiConfig = config;
+      });
+    
+    function switchOCRMode(mode) {
+      currentOCRMode = mode;
+      document.getElementById('btnBasicOCR').classList.toggle('btn-secondary', mode !== 'basic');
+      document.getElementById('btnBasicOCR').classList.toggle('btn-primary', mode === 'basic');
+      document.getElementById('btnAIOCR').classList.toggle('btn-secondary', mode !== 'ai');
+      document.getElementById('btnAIOCR').classList.toggle('btn-primary', mode === 'ai');
+      
+      if (currentEntry) {
+        const original = entriesData[currentEntry.timestamp];
+        
+        if (mode === 'ai' && currentEntry.ai_text) {
+          extractedText.textContent = currentEntry.ai_text;
+          // Use AI coordinates if available, otherwise fallback to basic
+          currentEntry.words_coords = (currentEntry.ai_words_coords && currentEntry.ai_words_coords.length > 0) 
+            ? currentEntry.ai_words_coords 
+            : original.words_coords;
+        } else {
+          extractedText.textContent = currentEntry.text;
+          currentEntry.words_coords = original.words_coords;
+        }
+        renderTextOverlay();
+      }
+    }
+    
+    async function runAIOCR() {
+      if (!currentEntry) {
+        alert('No screenshot selected');
+        return;
+      }
+      
+      const btn = document.getElementById('btnRunAI');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Processing...';
+      
+      try {
+        // Load real API key from backend
+        const configResp = await fetch('/api/config?full=true');
+        const fullConfig = await configResp.json();
+        
+        if (!fullConfig.api_key || fullConfig.api_key === '***' || fullConfig.api_key === '') {
+          alert('Please configure AI settings first');
+          showAIConfig();
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-robot"></i> Run AI Text';
+          return;
+        }
+        
+        const response = await fetch('/api/ai-ocr', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            timestamp: currentEntry.timestamp,
+            provider: fullConfig.provider || 'gemini',
+            api_key: fullConfig.api_key
+          })
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'AI OCR failed');
+        }
+        
+        const result = await response.json();
+        
+        // Update current entry
+        currentEntry.ai_text = result.text;
+        currentEntry.ai_words_coords = result.words_coords;
+        entriesData[currentEntry.timestamp].ai_text = result.text;
+        entriesData[currentEntry.timestamp].ai_words_coords = result.words_coords;
+        
+        // Switch to AI mode
+        switchOCRMode('ai');
+        
+        alert('AI OCR completed successfully!');
+      } catch (error) {
+        alert('AI OCR error: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-robot"></i> Run AI Text';
+      }
+    }
+    
+    function showAIConfig() {
+      const modal = document.getElementById('aiConfigModal');
+      const overlay = document.getElementById('aiConfigOverlay');
+      
+      if (aiConfig) {
+        document.getElementById('aiProvider').value = aiConfig.provider || 'gemini';
+        // Don't show the masked key
+        document.getElementById('aiApiKey').value = '';
+        document.getElementById('aiApiKey').placeholder = aiConfig.api_key === '***' ? 'Enter new API key' : 'Enter your API key';
+      }
+      
+      modal.classList.add('show');
+      overlay.classList.add('show');
+    }
+    
+    function closeAIConfig() {
+      const modal = document.getElementById('aiConfigModal');
+      const overlay = document.getElementById('aiConfigOverlay');
+      modal.classList.remove('show');
+      overlay.classList.remove('show');
+    }
+    
+    async function saveAIConfig() {
+      const provider = document.getElementById('aiProvider').value;
+      const apiKey = document.getElementById('aiApiKey').value;
+      
+      if (!apiKey) {
+        alert('Please enter an API key');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({provider, api_key: apiKey})
+        });
+        
+        if (response.ok) {
+          aiConfig = {provider, api_key: '***'};
+          alert('AI settings saved successfully!');
+          closeAIConfig();
+        } else {
+          alert('Failed to save settings');
+        }
+      } catch (error) {
+        alert('Error saving settings: ' + error.message);
+      }
+    }
+
     // Initialize the slider with a default value
     slider.value = timestamps.length - 1;
     updateDisplay(timestamps[0]);
@@ -513,7 +710,9 @@ def search():
             'title': entries[idx].title,
             'text': entries[idx].text,
             'timestamp': entries[idx].timestamp,
-            'words_coords': entries[idx].words_coords
+            'words_coords': entries[idx].words_coords,
+            'ai_text': entries[idx].ai_text,
+            'ai_words_coords': entries[idx].ai_words_coords if entries[idx].ai_words_coords else []
         }
         for idx, score, has_keyword in scores
     ]
@@ -696,6 +895,90 @@ def search():
 @app.route("/static/<filename>")
 def serve_image(filename):
     return send_from_directory(screenshots_path, filename)
+
+
+@app.route("/api/ai-ocr", methods=["POST"])
+def ai_ocr():
+    """Endpoint to perform AI OCR on a screenshot"""
+    try:
+        data = request.json
+        timestamp = data.get('timestamp')
+        provider = data.get('provider', 'gemini')
+        api_key = data.get('api_key')
+        
+        if not timestamp or not api_key:
+            return jsonify({'error': 'Missing timestamp or api_key'}), 400
+        
+        # Find the entry
+        entries = get_all_entries()
+        entry = next((e for e in entries if e.timestamp == timestamp), None)
+        
+        if not entry:
+            return jsonify({'error': 'Entry not found'}), 404
+        
+        # Load the screenshot image
+        image_path = os.path.join(screenshots_path, f"{timestamp}.webp")
+        if not os.path.exists(image_path):
+            return jsonify({'error': 'Screenshot file not found'}), 404
+        
+        # Convert image to base64
+        with Image.open(image_path) as img:
+            # Convert to RGB if necessary
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Save to bytes
+            import io
+            buffer = io.BytesIO()
+            img.save(buffer, format='JPEG', quality=95)
+            image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        # Get AI provider
+        ai_provider = get_ai_provider(provider, api_key)
+        
+        # Perform AI OCR
+        ai_text, ai_words_coords = ai_provider.ocr_with_positions(
+            image_base64,
+            entry.text
+        )
+        
+        # Update database
+        update_ai_ocr(timestamp, ai_text, ai_words_coords)
+        
+        return jsonify({
+            'success': True,
+            'text': ai_text,
+            'words_coords': ai_words_coords
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/api/config", methods=["GET", "POST"])
+def ai_config():
+    """Endpoint to manage AI OCR configuration"""
+    config_path = os.path.join(appdata_folder, "ai_config.json")
+    
+    if request.method == "GET":
+        full = request.args.get('full') == 'true'
+        
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                import json
+                config = json.load(f)
+                # Mask API key unless full=true
+                if not full:
+                    config['api_key'] = '***' if config.get('api_key') else ''
+                return jsonify(config)
+        return jsonify({'provider': 'gemini', 'api_key': ''})
+    
+    elif request.method == "POST":
+        data = request.json
+        import json
+        with open(config_path, 'w') as f:
+            json.dump(data, f)
+        return jsonify({'success': True})
 
 
 if __name__ == "__main__":
