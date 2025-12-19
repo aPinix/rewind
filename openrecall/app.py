@@ -30,6 +30,16 @@ base_template = """
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
   <style>
+    * {
+      overscroll-behavior-x: none;
+      overscroll-behavior-y: contain;
+    }
+    body {
+      overscroll-behavior-x: none;
+    }
+    html {
+      overscroll-behavior-x: none;
+    }
     .slider-container {
       display: flex;
       flex-direction: column;
@@ -53,8 +63,8 @@ base_template = """
     }
     .text-block-icon {
       position: absolute;
-      background: rgba(0, 123, 255, 0.9);
-      color: white;
+      background: rgba(0, 123, 255, 0.15);
+      color: rgba(255, 255, 255, 0.4);
       border-radius: 50%;
       width: 32px;
       height: 32px;
@@ -63,14 +73,16 @@ base_template = """
       justify-content: center;
       cursor: pointer;
       font-size: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       transition: all 0.2s;
       pointer-events: auto;
       z-index: 10;
     }
     .text-block-icon:hover {
-      background: rgba(0, 123, 255, 1);
-      transform: scale(1.1);
+      background: rgba(0, 123, 255, 0.9);
+      color: white;
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
     .home-icon {
       position: fixed;
@@ -236,10 +248,10 @@ def timeline():
       <div class="slider-value" id="sliderValue">{{timestamps[0] | timestamp_to_human_readable }}</div>
     </div>
     <div class="row flex-grow-1" style="overflow: hidden; margin: 0;">
-      <div id="imageColumn" class="col-md-8" style="height: 100%; overflow-y: auto; display: flex; align-items: center; justify-content: center; position: relative; transition: all 0.3s;">
-        <div style="position: relative;">
-          <img id="timestampImage" src="/static/{{timestamps[0]}}.webp" alt="Image for timestamp" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;">
-          <div id="textOverlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
+      <div id="imageColumn" class="col-md-8" style="height: 100%; display: flex; align-items: center; justify-content: center; position: relative; transition: width 0.3s; overscroll-behavior-x: none; padding: 20px;">
+        <div id="imageWrapper" style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+          <img id="timestampImage" src="/static/{{timestamps[0]}}.webp" alt="Image for timestamp" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;">
+          <div id="textOverlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;"></div>
         </div>
       </div>
       <div id="sidebarColumn" class="col-md-4 p-3 bg-light border-left" style="height: 100%; overflow-y: auto; display: flex; flex-direction: column; transition: all 0.3s;">
@@ -456,6 +468,90 @@ def timeline():
     showOverlayCheckbox.addEventListener('change', renderTextOverlay);
     window.addEventListener('resize', renderTextOverlay);
 
+    // Video-like scrubbing with trackpad - prevent ALL horizontal scroll from triggering back
+    const imageColumn = document.getElementById('imageColumn');
+    let accumulatedDelta = 0;
+    let isScrolling = false;
+    let scrollTimeout = null;
+    const sensitivity = 0.5;
+    
+    // Block back gesture at document level
+    document.addEventListener('wheel', function(e) {
+      if (Math.abs(e.deltaX) > 0) {
+        e.preventDefault();
+      }
+    }, { passive: false, capture: true });
+    
+    imageColumn.addEventListener('wheel', function(e) {
+      // Only handle horizontal scroll, ignore vertical
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Accumulate scroll delta for smooth scrubbing
+        accumulatedDelta += e.deltaX * sensitivity;
+        
+        // Calculate how many frames to move
+        const framesToMove = Math.floor(Math.abs(accumulatedDelta));
+        
+        if (framesToMove >= 1) {
+          const direction = accumulatedDelta > 0 ? 1 : -1;
+          let newValue = parseInt(slider.value) + (direction * framesToMove);
+          
+          // Reset accumulated delta
+          accumulatedDelta = accumulatedDelta % 1;
+          
+          // Clamp to valid range
+          const oldValue = parseInt(slider.value);
+          newValue = Math.max(0, Math.min(timestamps.length - 1, newValue));
+          
+          // Update even if at boundaries to consume the scroll
+          if (newValue !== oldValue) {
+            slider.value = newValue;
+            const reversedIndex = timestamps.length - 1 - slider.value;
+            const timestamp = timestamps[reversedIndex];
+            
+            // Fast update without overlay during scrubbing
+            if (!isScrolling) {
+              isScrolling = true;
+              showOverlayCheckbox.checked = false;
+            }
+            
+            sliderValue.textContent = new Date(timestamp / 1000).toLocaleString();
+            timestampImage.src = `/static/${timestamp}.webp`;
+            currentEntry = entriesData[timestamp];
+            extractedText.textContent = currentEntry ? currentEntry.text : 'No text available';
+          }
+          
+          // Clear and restart timeout even if we're at boundaries
+          clearTimeout(scrollTimeout);
+          scrollTimeout = setTimeout(() => {
+            isScrolling = false;
+            showOverlayCheckbox.checked = true;
+            renderTextOverlay();
+          }, 300);
+        }
+      }
+    }, { passive: false });
+    
+    // Arrow keys for precise navigation
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const direction = e.key === 'ArrowRight' ? 1 : -1;
+        let newValue = parseInt(slider.value) + direction;
+        
+        newValue = Math.max(0, Math.min(timestamps.length - 1, newValue));
+        
+        if (newValue !== parseInt(slider.value)) {
+          slider.value = newValue;
+          const reversedIndex = timestamps.length - 1 - slider.value;
+          const timestamp = timestamps[reversedIndex];
+          updateDisplay(timestamp);
+        }
+      }
+    });
+
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebarColumn');
       const imageCol = document.getElementById('imageColumn');
@@ -463,16 +559,20 @@ def timeline():
       
       if (sidebar.style.display === 'none') {
         sidebar.style.display = 'flex';
-        imageCol.className = 'col-md-8';
+        imageCol.classList.remove('col-md-12');
+        imageCol.classList.add('col-md-8');
         icon.className = 'bi bi-chevron-left';
       } else {
         sidebar.style.display = 'none';
-        imageCol.className = 'col-md-12';
+        imageCol.classList.remove('col-md-8');
+        imageCol.classList.add('col-md-12');
         icon.className = 'bi bi-chevron-right';
       }
       
-      // Re-render overlay after layout change
-      setTimeout(renderTextOverlay, 300);
+      // Wait for transition and re-render
+      setTimeout(() => {
+        renderTextOverlay();
+      }, 350);
     }
 
     function toggleTextPanel() {
