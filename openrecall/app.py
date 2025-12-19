@@ -47,6 +47,76 @@ base_template = """
       max-width: 100%;
       height: auto;
     }
+    .text-block-icon {
+      position: absolute;
+      background: rgba(0, 123, 255, 0.9);
+      color: white;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transition: all 0.2s;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    .text-block-icon:hover {
+      background: rgba(0, 123, 255, 1);
+      transform: scale(1.1);
+    }
+    .text-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      max-width: 600px;
+      max-height: 80vh;
+      overflow: hidden;
+      z-index: 1000;
+      display: none;
+    }
+    .text-popup.show {
+      display: block;
+    }
+    .text-popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+    }
+    .text-popup-overlay.show {
+      display: block;
+    }
+    .text-popup-header {
+      padding: 15px;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .text-popup-body {
+      padding: 15px;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+    .text-popup-footer {
+      padding: 15px;
+      border-top: 1px solid #dee2e6;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -111,16 +181,33 @@ def timeline():
         <div class="mb-3">
           <label class="d-flex align-items-center">
             <input type="checkbox" id="showOverlay" checked class="mr-2">
-            <span>Show text overlay on image</span>
+            <span>Show text blocks on image</span>
           </label>
         </div>
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <strong>Extracted Text:</strong>
+          <strong>All Extracted Text:</strong>
           <button class="btn btn-sm btn-outline-primary" onclick="copyCurrentText()">
-            <i class="bi bi-clipboard"></i> Copy
+            <i class="bi bi-clipboard"></i> Copy All
           </button>
         </div>
         <pre id="extractedText" style="white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 0.9em; user-select: text;"></pre>
+      </div>
+    </div>
+    
+    <div class="text-popup-overlay" id="textPopupOverlay" onclick="closeTextPopup()"></div>
+    <div class="text-popup" id="textPopup">
+      <div class="text-popup-header">
+        <strong>Text Block</strong>
+        <button type="button" class="close" onclick="closeTextPopup()">&times;</button>
+      </div>
+      <div class="text-popup-body">
+        <pre id="popupText" style="white-space: pre-wrap; word-wrap: break-word; margin: 0; user-select: text;"></pre>
+      </div>
+      <div class="text-popup-footer">
+        <button class="btn btn-sm btn-secondary" onclick="closeTextPopup()">Close</button>
+        <button class="btn btn-sm btn-primary" onclick="copyPopupText()">
+          <i class="bi bi-clipboard"></i> Copy Text
+        </button>
       </div>
     </div>
   </div>
@@ -133,39 +220,89 @@ def timeline():
     const extractedText = document.getElementById('extractedText');
     const textOverlay = document.getElementById('textOverlay');
     const showOverlayCheckbox = document.getElementById('showOverlay');
+    const textPopup = document.getElementById('textPopup');
+    const textPopupOverlay = document.getElementById('textPopupOverlay');
+    const popupText = document.getElementById('popupText');
     
     let currentEntry = null;
+
+    function groupWordsIntoBlocks(words) {
+      if (!words || words.length === 0) return [];
+      
+      const blocks = [];
+      let currentBlock = [words[0]];
+      
+      for (let i = 1; i < words.length; i++) {
+        const prev = words[i - 1];
+        const curr = words[i];
+        
+        // Check if words are on similar Y position (same line) or close vertically
+        const verticalDistance = Math.abs(curr.y1 - prev.y1);
+        const avgHeight = (curr.y2 - curr.y1 + prev.y2 - prev.y1) / 2;
+        
+        if (verticalDistance < avgHeight * 0.5) {
+          currentBlock.push(curr);
+        } else {
+          blocks.push(currentBlock);
+          currentBlock = [curr];
+        }
+      }
+      blocks.push(currentBlock);
+      
+      // Merge blocks into text regions
+      return blocks.map(block => {
+        const minX = Math.min(...block.map(w => w.x1));
+        const minY = Math.min(...block.map(w => w.y1));
+        const maxX = Math.max(...block.map(w => w.x2));
+        const maxY = Math.max(...block.map(w => w.y2));
+        const text = block.map(w => w.text).join(' ');
+        
+        return { x1: minX, y1: minY, x2: maxX, y2: maxY, text };
+      });
+    }
 
     function renderTextOverlay() {
       textOverlay.innerHTML = '';
       if (!showOverlayCheckbox.checked || !currentEntry || !currentEntry.words_coords) return;
       
       const img = timestampImage;
-      const imgRect = img.getBoundingClientRect();
-      const imgWidth = img.naturalWidth;
-      const imgHeight = img.naturalHeight;
       const displayWidth = img.width;
       const displayHeight = img.height;
       
-      currentEntry.words_coords.forEach(word => {
-        const span = document.createElement('span');
-        span.textContent = word.text;
-        span.style.position = 'absolute';
-        span.style.left = (word.x1 * displayWidth) + 'px';
-        span.style.top = (word.y1 * displayHeight) + 'px';
-        span.style.width = ((word.x2 - word.x1) * displayWidth) + 'px';
-        span.style.height = ((word.y2 - word.y1) * displayHeight) + 'px';
-        span.style.color = 'transparent';
-        span.style.cursor = 'text';
-        span.style.pointerEvents = 'auto';
-        span.style.userSelect = 'text';
-        span.title = word.text;
-        textOverlay.appendChild(span);
+      const blocks = groupWordsIntoBlocks(currentEntry.words_coords);
+      
+      blocks.forEach((block, index) => {
+        const icon = document.createElement('div');
+        icon.className = 'text-block-icon';
+        icon.innerHTML = '<i class="bi bi-file-text"></i>';
+        icon.style.left = (block.x1 * displayWidth) + 'px';
+        icon.style.top = (block.y1 * displayHeight) + 'px';
+        icon.title = 'Click to view text';
+        icon.onclick = () => showTextPopup(block.text);
+        textOverlay.appendChild(icon);
+      });
+    }
+
+    function showTextPopup(text) {
+      popupText.textContent = text;
+      textPopup.classList.add('show');
+      textPopupOverlay.classList.add('show');
+    }
+
+    function closeTextPopup() {
+      textPopup.classList.remove('show');
+      textPopupOverlay.classList.remove('show');
+    }
+
+    function copyPopupText() {
+      const text = popupText.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Text copied to clipboard!');
       });
     }
 
     function updateDisplay(timestamp) {
-      sliderValue.textContent = new Date(timestamp * 1000).toLocaleString();
+      sliderValue.textContent = new Date(timestamp / 1000).toLocaleString();
       timestampImage.src = `/static/${timestamp}.webp`;
       currentEntry = entriesData[timestamp];
       extractedText.textContent = currentEntry ? currentEntry.text : 'No text available';
@@ -240,6 +377,23 @@ def search():
                                         <img id="modalImg{{ loop.index0 }}" src="/static/{{ entry['timestamp'] }}.webp" alt="Image" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;">
                                         <div id="modalOverlay{{ loop.index0 }}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
                                     </div>
+                                    
+                                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: none;" id="modalPopupOverlay{{ loop.index0 }}" onclick="closeModalTextPopup{{ loop.index0 }}()"></div>
+                                    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-width: 600px; max-height: 80vh; overflow: hidden; z-index: 2001; display: none;" id="modalTextPopup{{ loop.index0 }}">
+                                        <div style="padding: 15px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+                                            <strong>Text Block</strong>
+                                            <button type="button" class="close" onclick="closeModalTextPopup{{ loop.index0 }}()">&times;</button>
+                                        </div>
+                                        <div style="padding: 15px; max-height: 60vh; overflow-y: auto;">
+                                            <pre id="modalPopupText{{ loop.index0 }}" style="white-space: pre-wrap; word-wrap: break-word; margin: 0; user-select: text;"></pre>
+                                        </div>
+                                        <div style="padding: 15px; border-top: 1px solid #dee2e6; display: flex; justify-content: flex-end; gap: 10px;">
+                                            <button class="btn btn-sm btn-secondary" onclick="closeModalTextPopup{{ loop.index0 }}()">Close</button>
+                                            <button class="btn btn-sm btn-primary" onclick="copyModalPopupText{{ loop.index0 }}()">
+                                                <i class="bi bi-clipboard"></i> Copy Text
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 {% if entry['text'] %}
                                 <div class="p-3 bg-light border-left" style="flex: 1; overflow-y: auto; min-width: 300px;">
@@ -264,6 +418,64 @@ def search():
                                         const overlay = document.getElementById('modalOverlay{{ loop.index0 }}');
                                         const checkbox = document.getElementById('showModalOverlay{{ loop.index0 }}');
                                         
+                                        function groupWordsIntoBlocks(words) {
+                                            if (!words || words.length === 0) return [];
+                                            
+                                            const blocks = [];
+                                            let currentBlock = [words[0]];
+                                            
+                                            for (let i = 1; i < words.length; i++) {
+                                                const prev = words[i - 1];
+                                                const curr = words[i];
+                                                
+                                                const verticalDistance = Math.abs(curr.y1 - prev.y1);
+                                                const avgHeight = (curr.y2 - curr.y1 + prev.y2 - prev.y1) / 2;
+                                                
+                                                if (verticalDistance < avgHeight * 0.5) {
+                                                    currentBlock.push(curr);
+                                                } else {
+                                                    blocks.push(currentBlock);
+                                                    currentBlock = [curr];
+                                                }
+                                            }
+                                            blocks.push(currentBlock);
+                                            
+                                            return blocks.map(block => {
+                                                const minX = Math.min(...block.map(w => w.x1));
+                                                const minY = Math.min(...block.map(w => w.y1));
+                                                const maxX = Math.max(...block.map(w => w.x2));
+                                                const maxY = Math.max(...block.map(w => w.y2));
+                                                const text = block.map(w => w.text).join(' ');
+                                                
+                                                return { x1: minX, y1: minY, x2: maxX, y2: maxY, text };
+                                            });
+                                        }
+                                        
+                                        function showModalTextPopup{{ loop.index0 }}(text) {
+                                            const existingPopup = document.getElementById('modalTextPopup{{ loop.index0 }}');
+                                            if (existingPopup) {
+                                                document.getElementById('modalPopupText{{ loop.index0 }}').textContent = text;
+                                                existingPopup.style.display = 'block';
+                                                document.getElementById('modalPopupOverlay{{ loop.index0 }}').style.display = 'block';
+                                            }
+                                        }
+                                        
+                                        function closeModalTextPopup{{ loop.index0 }}() {
+                                            document.getElementById('modalTextPopup{{ loop.index0 }}').style.display = 'none';
+                                            document.getElementById('modalPopupOverlay{{ loop.index0 }}').style.display = 'none';
+                                        }
+                                        
+                                        window.closeModalTextPopup{{ loop.index0 }} = closeModalTextPopup{{ loop.index0 }};
+                                        
+                                        function copyModalPopupText{{ loop.index0 }}() {
+                                            const text = document.getElementById('modalPopupText{{ loop.index0 }}').textContent;
+                                            navigator.clipboard.writeText(text).then(() => {
+                                                alert('Text copied to clipboard!');
+                                            });
+                                        }
+                                        
+                                        window.copyModalPopupText{{ loop.index0 }} = copyModalPopupText{{ loop.index0 }};
+                                        
                                         function renderModalOverlay() {
                                             overlay.innerHTML = '';
                                             if (!checkbox.checked || !wordsCoords) return;
@@ -271,20 +483,17 @@ def search():
                                             const displayWidth = img.width;
                                             const displayHeight = img.height;
                                             
-                                            wordsCoords.forEach(word => {
-                                                const span = document.createElement('span');
-                                                span.textContent = word.text;
-                                                span.style.position = 'absolute';
-                                                span.style.left = (word.x1 * displayWidth) + 'px';
-                                                span.style.top = (word.y1 * displayHeight) + 'px';
-                                                span.style.width = ((word.x2 - word.x1) * displayWidth) + 'px';
-                                                span.style.height = ((word.y2 - word.y1) * displayHeight) + 'px';
-                                                span.style.color = 'transparent';
-                                                span.style.cursor = 'text';
-                                                span.style.pointerEvents = 'auto';
-                                                span.style.userSelect = 'text';
-                                                span.title = word.text;
-                                                overlay.appendChild(span);
+                                            const blocks = groupWordsIntoBlocks(wordsCoords);
+                                            
+                                            blocks.forEach((block, index) => {
+                                                const icon = document.createElement('div');
+                                                icon.className = 'text-block-icon';
+                                                icon.innerHTML = '<i class="bi bi-file-text"></i>';
+                                                icon.style.left = (block.x1 * displayWidth) + 'px';
+                                                icon.style.top = (block.y1 * displayHeight) + 'px';
+                                                icon.title = 'Click to view text';
+                                                icon.onclick = () => showModalTextPopup{{ loop.index0 }}(block.text);
+                                                overlay.appendChild(icon);
                                             });
                                         }
                                         
