@@ -462,22 +462,60 @@ def timeline():
 @app.route("/search")
 def search():
     q = request.args.get("q")
+    if not q or not q.strip():
+        return render_template_string(
+            """
+{% extends "base_template" %}
+{% block content %}
+    <div class="container mt-4">
+        <div class="alert alert-info">Please enter a search query</div>
+    </div>
+{% endblock %}
+""")
+    
     entries = get_all_entries()
     embeddings = [entry.embedding for entry in entries]
     query_embedding = get_embedding(q)
     similarities = [cosine_similarity(query_embedding, emb) for emb in embeddings]
-    indices = np.argsort(similarities)[::-1]
+    
+    # Create a hybrid score: semantic similarity + keyword match boost
+    query_lower = q.lower()
+    scores = []
+    for i, entry in enumerate(entries):
+        semantic_score = similarities[i]
+        
+        # Boost score if query keywords are found in text
+        text_lower = entry.text.lower()
+        keyword_boost = 0
+        
+        # Exact phrase match gets highest boost
+        if query_lower in text_lower:
+            keyword_boost = 0.5
+        else:
+            # Check individual words
+            query_words = query_lower.split()
+            matched_words = sum(1 for word in query_words if word in text_lower)
+            if matched_words > 0:
+                keyword_boost = 0.3 * (matched_words / len(query_words))
+        
+        # Combined score
+        final_score = semantic_score + keyword_boost
+        scores.append((i, final_score, keyword_boost > 0))
+    
+    # Sort by score, prioritizing entries with keyword matches
+    scores.sort(key=lambda x: (x[2], x[1]), reverse=True)
+    
     # Convert entries to dict without embedding (numpy array)
     sorted_entries = [
         {
-            'id': entries[i].id,
-            'app': entries[i].app,
-            'title': entries[i].title,
-            'text': entries[i].text,
-            'timestamp': entries[i].timestamp,
-            'words_coords': entries[i].words_coords
+            'id': entries[idx].id,
+            'app': entries[idx].app,
+            'title': entries[idx].title,
+            'text': entries[idx].text,
+            'timestamp': entries[idx].timestamp,
+            'words_coords': entries[idx].words_coords
         }
-        for i in indices
+        for idx, score, has_keyword in scores
     ]
 
     return render_template_string(
