@@ -33,34 +33,138 @@ base_template = """
     * {
       overscroll-behavior-x: none;
       overscroll-behavior-y: contain;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    body {
+    body, html {
       overscroll-behavior-x: none;
+      height: 100vh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #000;
+      color: #fff;
     }
-    html {
-      overscroll-behavior-x: none;
-    }
-    .slider-container {
+    
+    /* Fullscreen layout */
+    .fullscreen-container {
+      width: 100vw;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      position: relative;
+    }
+    
+    /* Search bar - top right */
+    .search-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    .search-input {
+      width: 400px;
+      padding: 12px 20px;
+      padding-right: 45px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(30, 30, 30, 0.9);
+      backdrop-filter: blur(20px);
+      color: #fff;
+      font-size: 15px;
+      transition: all 0.2s;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: rgba(0, 123, 255, 0.6);
+      background: rgba(40, 40, 40, 0.95);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    .search-icon {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+    }
+    
+    /* Search results modal */
+    .search-results-modal {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      width: 800px;
+      max-height: calc(100vh - 120px);
+      background: rgba(30, 30, 30, 0.98);
+      backdrop-filter: blur(40px);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
       padding: 20px;
+      overflow-y: auto;
+      display: none;
+      z-index: 999;
     }
-    .slider {
-      width: 80%;
+    .search-results-modal.show {
+      display: block;
     }
-    .slider-value {
-      margin-top: 10px;
-      font-size: 1.2em;
+    .search-results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
     }
-    .image-container {
-      margin-top: 20px;
+    .search-result-card {
+      background: rgba(50, 50, 50, 0.6);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+    .search-result-card:hover {
+      transform: scale(1.05);
+      border-color: rgba(0, 123, 255, 0.6);
+      box-shadow: 0 8px 24px rgba(0, 123, 255, 0.3);
+    }
+    .search-result-card img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+    .search-result-time {
+      padding: 8px 12px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
       text-align: center;
     }
-    .image-container img {
-      max-width: 100%;
-      height: auto;
+    
+    /* Main screenshot area */
+    .screenshot-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 40px 120px;
+      position: relative;
     }
+    .screenshot-wrapper {
+      position: relative;
+      max-width: 100%;
+      max-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .screenshot-wrapper img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Text overlay icons */
     .text-block-icon {
       position: absolute;
       background: rgba(0, 123, 255, 0.15);
@@ -73,7 +177,6 @@ base_template = """
       justify-content: center;
       cursor: pointer;
       font-size: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       transition: all 0.2s;
       pointer-events: auto;
       z-index: 10;
@@ -82,12 +185,66 @@ base_template = """
       background: rgba(0, 123, 255, 0.9);
       color: white;
       transform: scale(1.2);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
     }
-    .home-icon {
+    
+    /* Timeline - bottom center */
+    .timeline-container {
       position: fixed;
-      top: 15px;
-      left: 15px;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
+    .timeline-pill {
+      background: rgba(30, 30, 30, 0.95);
+      backdrop-filter: blur(40px);
+      border-radius: 32px;
+      padding: 16px 32px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      min-width: 400px;
+    }
+    .timeline-date {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      letter-spacing: 0.3px;
+    }
+    .timeline-slider {
+      width: 100%;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      outline: none;
+    }
+    .timeline-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #007bff;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
+    }
+    .timeline-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #007bff;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
+    }
+    
+    /* Text popup */
       z-index: 1100;
       background: white;
       border-radius: 50%;
@@ -213,6 +370,506 @@ class StringLoader(BaseLoader):
 
 
 app.jinja_env.loader = StringLoader()
+
+
+@app.route("/timeline-v2")
+def timeline_v2():
+    """New Rewind.ai style interface"""
+    timestamps = get_timestamps()
+    entries = get_all_entries()
+    entries_dict = {
+        entry.timestamp: {
+            'id': entry.id,
+            'text': entry.text,
+            'timestamp': entry.timestamp,
+            'words_coords': entry.words_coords,
+            'ai_text': entry.ai_text,
+            'ai_words_coords': entry.ai_words_coords if entry.ai_words_coords else []
+        }
+        for entry in entries
+    }
+    return render_template_string("""
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenRecall</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; overscroll-behavior-x: none; }
+    body, html {
+      height: 100vh; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #000; color: #fff;
+    }
+    .fullscreen-container { width: 100vw; height: 100vh; position: relative; }
+    
+    /* Search bar */
+    .search-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+    .search-wrapper { position: relative; }
+    .search-input {
+      width: 400px; padding: 12px 45px 12px 20px; border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.2); background: rgba(30,30,30,0.9);
+      backdrop-filter: blur(20px); color: #fff; font-size: 15px; transition: all 0.2s;
+    }
+    .search-input:focus {
+      outline: none; border-color: rgba(0,123,255,0.6);
+      background: rgba(40,40,40,0.95); box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .search-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.5); }
+    
+    /* Search results */
+    .search-results {
+      position: fixed; top: 80px; right: 20px; width: 850px; max-height: calc(100vh - 120px);
+      background: rgba(30,30,30,0.98); backdrop-filter: blur(40px); border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      padding: 20px; overflow-y: auto; display: none; z-index: 999;
+    }
+    .search-results.show { display: block; }
+    .results-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;
+    }
+    .result-card {
+      background: rgba(50,50,50,0.6); border-radius: 12px; overflow: hidden;
+      cursor: pointer; transition: all 0.2s; border: 2px solid transparent;
+    }
+    .result-card:hover {
+      transform: scale(1.05); border-color: rgba(0,123,255,0.6);
+      box-shadow: 0 8px 24px rgba(0,123,255,0.3);
+    }
+    .result-card img { width: 100%; height: 120px; object-fit: cover; }
+    .result-time { padding: 8px 12px; font-size: 11px; color: rgba(255,255,255,0.6); text-align: center; }
+    
+    /* Screenshot area */
+    .screenshot-area {
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      padding: 60px 40px 140px; position: relative;
+    }
+    .screenshot-wrapper { position: relative; max-width: 100%; max-height: 100%; }
+    .screenshot-wrapper img {
+      max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+    }
+    .text-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    
+    /* Text icons */
+    .text-icon {
+      position: absolute; background: rgba(0,123,255,0.15); color: rgba(255,255,255,0.4);
+      border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; transition: all 0.2s; pointer-events: auto; z-index: 10;
+    }
+    .text-icon:hover {
+      background: rgba(0,123,255,0.9); color: white; transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(0,123,255,0.4);
+    }
+    
+    /* Timeline */
+    .timeline {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
+    }
+    .timeline-pill {
+      background: rgba(30,30,30,0.95); backdrop-filter: blur(40px); border-radius: 32px;
+      padding: 16px 32px; border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+      align-items: center; gap: 12px; min-width: 400px;
+    }
+    .timeline-date {
+      font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.9); letter-spacing: 0.3px;
+    }
+    .timeline-slider {
+      width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
+      background: rgba(255,255,255,0.2); border-radius: 2px; outline: none;
+    }
+    .timeline-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: #007bff; cursor: pointer; box-shadow: 0 2px 8px rgba(0,123,255,0.4);
+    }
+    .timeline-slider::-moz-range-thumb {
+      width: 16px; height: 16px; border-radius: 50%; background: #007bff;
+      cursor: pointer; border: none; box-shadow: 0 2px 8px rgba(0,123,255,0.4);
+    }
+    
+    /* Text popup */
+    .text-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; }
+    .text-popup-overlay.show { display: block; }
+    .text-popup {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(30,30,30,0.98); backdrop-filter: blur(40px); border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+      max-width: 600px; max-height: 80vh; overflow: hidden; z-index: 2001; display: none;
+    }
+    .text-popup.show { display: block; }
+    .popup-header {
+      padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .popup-body { padding: 20px; max-height: 60vh; overflow-y: auto; }
+    .popup-body pre {
+      white-space: pre-wrap; word-wrap: break-word; margin: 0;
+      color: rgba(255,255,255,0.9); font-size: 14px; user-select: text;
+    }
+    .popup-footer {
+      padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex; justify-content: flex-end; gap: 12px;
+    }
+    .btn {
+      padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 14px; transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #007bff; color: white;
+    }
+    .btn-primary:hover { background: #0056b3; }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1); color: white;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+    .close-btn {
+      background: none; border: none; color: rgba(255,255,255,0.6);
+      font-size: 24px; cursor: pointer; padding: 0; line-height: 1;
+    }
+    .close-btn:hover { color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="fullscreen-container">
+    <!-- Search bar -->
+    <div class="search-container">
+      <div class="search-wrapper">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search your history...">
+        <i class="bi bi-search search-icon"></i>
+      </div>
+    </div>
+    
+    <!-- Search results -->
+    <div class="search-results" id="searchResults"></div>
+    
+    <!-- Screenshot area -->
+    <div class="screenshot-area" id="screenshotArea">
+      <div class="screenshot-wrapper">
+        <img id="screenshot" src="/static/{{timestamps[0]}}.webp" alt="Screenshot">
+        <div class="text-overlay" id="textOverlay"></div>
+      </div>
+    </div>
+    
+    <!-- Timeline -->
+    <div class="timeline">
+      <div class="timeline-pill">
+        <div class="timeline-date" id="timelineDate">{{timestamps[0] | timestamp_to_human_readable}}</div>
+        <input type="range" class="timeline-slider" id="timelineSlider" 
+               min="0" max="{{timestamps|length - 1}}" value="{{timestamps|length - 1}}">
+      </div>
+    </div>
+  </div>
+  
+  <!-- Text popup -->
+  <div class="text-popup-overlay" id="textPopupOverlay" onclick="closeTextPopup()"></div>
+  <div class="text-popup" id="textPopup">
+    <div class="popup-header">
+      <strong>Text Block</strong>
+      <button class="close-btn" onclick="closeTextPopup()">&times;</button>
+    </div>
+    <div class="popup-body">
+      <pre id="popupText"></pre>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-secondary" onclick="closeTextPopup()">Close</button>
+      <button class="btn btn-primary" onclick="copyPopupText()">
+        <i class="bi bi-clipboard"></i> Copy
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const timestamps = {{timestamps|tojson}};
+    const entriesData = {{entries_dict|tojson}};
+    const slider = document.getElementById('timelineSlider');
+    const dateEl = document.getElementById('timelineDate');
+    const screenshot = document.getElementById('screenshot');
+    const textOverlay = document.getElementById('textOverlay');
+    const screenshotArea = document.getElementById('screenshotArea');
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    
+    let currentEntry = null;
+    let searchTimeout = null;
+    
+    // Update display
+    function updateDisplay(timestamp) {
+      screenshot.src = `/static/${timestamp}.webp`;
+      dateEl.textContent = new Date(timestamp / 1000).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit', hour12: true
+      });
+      currentEntry = entriesData[timestamp];
+      screenshot.onload = renderOverlay;
+    }
+    
+    // Slider
+    slider.addEventListener('input', () => {
+      const idx = timestamps.length - 1 - parseInt(slider.value);
+      updateDisplay(timestamps[idx]);
+    });
+    
+    // Trackpad scrubbing
+    let accDelta = 0, isScrolling = false, scrollTimeout = null;
+    document.addEventListener('wheel', e => {
+      if (Math.abs(e.deltaX) > 0) e.preventDefault();
+    }, {passive: false, capture: true});
+    
+    screenshotArea.addEventListener('wheel', e => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        accDelta += e.deltaX * 0.5;
+        const frames = Math.floor(Math.abs(accDelta));
+        
+        if (frames >= 1) {
+          const dir = accDelta > 0 ? 1 : -1;
+          let newVal = parseInt(slider.value) + (dir * frames);
+          accDelta = accDelta % 1;
+          newVal = Math.max(0, Math.min(timestamps.length - 1, newVal));
+          
+          if (newVal !== parseInt(slider.value)) {
+            slider.value = newVal;
+            const idx = timestamps.length - 1 - slider.value;
+            const ts = timestamps[idx];
+            
+            if (!isScrolling) isScrolling = true;
+            
+            dateEl.textContent = new Date(ts / 1000).toLocaleString('en-US', {
+              month: 'short', day: 'numeric', year: 'numeric',
+              hour: 'numeric', minute: '2-digit', hour12: true
+            });
+            screenshot.src = `/static/${ts}.webp`;
+            currentEntry = entriesData[ts];
+          }
+          
+          clearTimeout(scrollTimeout);
+          scrollTimeout = setTimeout(() => {
+            isScrolling = false;
+            renderOverlay();
+          }, 300);
+        }
+      }
+    }, {passive: false});
+    
+    // Arrow keys
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const dir = e.key === 'ArrowRight' ? 1 : -1;
+        let newVal = parseInt(slider.value) + dir;
+        newVal = Math.max(0, Math.min(timestamps.length - 1, newVal));
+        if (newVal !== parseInt(slider.value)) {
+          slider.value = newVal;
+          const idx = timestamps.length - 1 - slider.value;
+          updateDisplay(timestamps[idx]);
+        }
+      } else if (e.key === 'Escape') {
+        closeTextPopup();
+        searchResults.classList.remove('show');
+      }
+    });
+    
+    // Render overlay
+    function groupWords(words) {
+      if (!words || words.length === 0) return [];
+      const lines = [];
+      let line = [words[0]];
+      for (let i = 1; i < words.length; i++) {
+        const p = words[i-1], c = words[i];
+        const vd = Math.abs(c.y1 - p.y1);
+        const ah = (c.y2 - c.y1 + p.y2 - p.y1) / 2;
+        if (vd < ah * 0.5) line.push(c);
+        else { lines.push(line); line = [c]; }
+      }
+      lines.push(line);
+      
+      const blocks = [];
+      let block = [lines[0]];
+      for (let i = 1; i < lines.length; i++) {
+        const pl = lines[i-1], cl = lines[i];
+        const pmy = Math.max(...pl.map(w => w.y2));
+        const cmy = Math.min(...cl.map(w => w.y1));
+        const gap = cmy - pmy;
+        const alh = ((Math.max(...pl.map(w => w.y2)) - Math.min(...pl.map(w => w.y1))) +
+                     (Math.max(...cl.map(w => w.y2)) - Math.min(...cl.map(w => w.y1)))) / 2;
+        if (gap < alh * 1.5) block.push(cl);
+        else { blocks.push(block); block = [cl]; }
+      }
+      blocks.push(block);
+      
+      return blocks.map(b => {
+        const all = b.flat();
+        return {
+          x1: Math.min(...all.map(w => w.x1)),
+          y1: Math.min(...all.map(w => w.y1)),
+          x2: Math.max(...all.map(w => w.x2)),
+          y2: Math.max(...all.map(w => w.y2)),
+          text: b.map(l => l.map(w => w.text).join(' ')).join('\\n')
+        };
+      });
+    }
+    
+    function renderOverlay() {
+      textOverlay.innerHTML = '';
+      if (!currentEntry || !currentEntry.words_coords) return;
+      
+      const w = screenshot.clientWidth;
+      const h = screenshot.clientHeight;
+      textOverlay.style.width = w + 'px';
+      textOverlay.style.height = h + 'px';
+      
+      const blocks = groupWords(currentEntry.words_coords);
+      const positions = [];
+      const minDist = 40;
+      
+      blocks.forEach(block => {
+        const bw = (block.x2 - block.x1) * w;
+        const bh = (block.y2 - block.y1) * h;
+        let left = block.x1 * w + bw/2 - 16;
+        let top = block.y1 * h + bh/2 - 16;
+        
+        let overlapping = true, attempts = 0;
+        while (overlapping && attempts < 10) {
+          overlapping = false;
+          for (const pos of positions) {
+            const dist = Math.sqrt(Math.pow(left - pos.left, 2) + Math.pow(top - pos.top, 2));
+            if (dist < minDist) {
+              overlapping = true;
+              if (attempts === 0) { left = block.x1 * w; top = block.y1 * h; }
+              else if (attempts === 1) { left = block.x2 * w - 32; top = block.y1 * h; }
+              else if (attempts === 2) { left = block.x1 * w; top = block.y2 * h - 32; }
+              else if (attempts === 3) { left = block.x2 * w - 32; top = block.y2 * h - 32; }
+              else { left += (Math.random() - 0.5) * 20; top += (Math.random() - 0.5) * 20; }
+              break;
+            }
+          }
+          attempts++;
+        }
+        
+        positions.push({left, top});
+        const icon = document.createElement('div');
+        icon.className = 'text-icon';
+        icon.innerHTML = '<i class="bi bi-file-text"></i>';
+        icon.style.left = left + 'px';
+        icon.style.top = top + 'px';
+        icon.onclick = () => showTextPopup(block.text);
+        textOverlay.appendChild(icon);
+      });
+    }
+    
+    // Text popup
+    function showTextPopup(text) {
+      document.getElementById('popupText').textContent = text;
+      document.getElementById('textPopup').classList.add('show');
+      document.getElementById('textPopupOverlay').classList.add('show');
+    }
+    
+    function closeTextPopup() {
+      document.getElementById('textPopup').classList.remove('show');
+      document.getElementById('textPopupOverlay').classList.remove('show');
+    }
+    
+    function copyPopupText() {
+      const text = document.getElementById('popupText').textContent;
+      navigator.clipboard.writeText(text).then(() => alert('Copied!'));
+    }
+    
+    // Search
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      const q = searchInput.value.trim();
+      
+      if (!q) {
+        searchResults.classList.remove('show');
+        return;
+      }
+      
+      searchTimeout = setTimeout(() => performSearch(q), 300);
+    });
+    
+    async function performSearch(q) {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const results = await response.json();
+      
+      if (results.length === 0) {
+        searchResults.innerHTML = '<p style="color: rgba(255,255,255,0.5); text-align: center;">No results found</p>';
+      } else {
+        searchResults.innerHTML = '<div class="results-grid">' + 
+          results.map(r => `
+            <div class="result-card" onclick="goToTimestamp(${r.timestamp})">
+              <img src="/static/${r.timestamp}.webp" alt="">
+              <div class="result-time">${new Date(r.timestamp/1000).toLocaleString('en-US', {
+                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+              })}</div>
+            </div>
+          `).join('') + '</div>';
+      }
+      searchResults.classList.add('show');
+    }
+    
+    function goToTimestamp(ts) {
+      const idx = timestamps.indexOf(ts);
+      if (idx !== -1) {
+        slider.value = timestamps.length - 1 - idx;
+        updateDisplay(ts);
+        searchResults.classList.remove('show');
+        searchInput.value = '';
+      }
+    }
+    
+    // Init
+    updateDisplay(timestamps[0]);
+  </script>
+</body>
+</html>
+    """, timestamps=timestamps, entries_dict=entries_dict)
+
+
+@app.route("/api/search")
+def api_search():
+    """API endpoint for search"""
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify([])
+    
+    entries = get_all_entries()
+    embeddings = [entry.embedding for entry in entries]
+    query_embedding = get_embedding(q)
+    similarities = [cosine_similarity(query_embedding, emb) for emb in embeddings]
+    
+    query_lower = q.lower()
+    scores = []
+    for i, entry in enumerate(entries):
+        semantic_score = similarities[i]
+        text_lower = entry.text.lower()
+        keyword_boost = 0
+        
+        if query_lower in text_lower:
+            keyword_boost = 0.5
+        else:
+            query_words = query_lower.split()
+            matched = sum(1 for word in query_words if word in text_lower)
+            if matched > 0:
+                keyword_boost = 0.3 * (matched / len(query_words))
+        
+        scores.append((i, semantic_score + keyword_boost, keyword_boost > 0))
+    
+    scores.sort(key=lambda x: (x[2], x[1]), reverse=True)
+    
+    results = [
+        {
+            'timestamp': entries[idx].timestamp,
+            'text': entries[idx].text[:200]
+        }
+        for idx, score, has_keyword in scores[:20]
+    ]
+    
+    return jsonify(results)
 
 
 @app.route("/")
