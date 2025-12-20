@@ -123,37 +123,34 @@ def record_screenshots_thread():
 
             last_screenshot = last_screenshots[i]
 
-            if not is_similar(screenshot, last_screenshots):
+            if not is_similar(screenshot, last_screenshot):
                 last_screenshots[i] = screenshot
                 
-                # 1. Run OCR on full resolution image for best accuracy
+                # 1. Run OCR on full resolution image
                 text, words_coords = extract_text_from_image(screenshot)
                 
-                # 2. Only save if text is actually found
-                if text.strip():
-                    image = Image.fromarray(screenshot)
-                    
-                    # 3. Resize to 50% to save space (while keeping aspect ratio)
-                    width, height = image.size
-                    image = image.resize((width // 2, height // 2), Image.LANCZOS)
-                    
-                    # Use timestamp with microseconds to avoid collisions
-                    timestamp = int(time.time() * 1000000)  # microseconds
-                    filename = f"{timestamp}.webp"
-                    
-                    # 4. Save with lossy compression (quality 50 is usually fine for text/UI)
-                    image.save(
-                        os.path.join(screenshots_path, filename),
-                        format="webp",
-                        lossless=False,
-                        quality=50,
-                    )
-                    
-                    embedding: np.ndarray = get_embedding(text)
-                    active_app_name: str = get_active_app_name() or "Unknown App"
-                    active_window_title: str = get_active_window_title() or "Unknown Title"
-                    insert_entry(
-                        text, timestamp, embedding, active_app_name, active_window_title, words_coords
-                    )
+                # 2. Resize and save image (Always save, regardless of text)
+                image = Image.fromarray(screenshot)
+                width, height = image.size
+                image = image.resize((width // 2, height // 2), Image.LANCZOS)
+                
+                timestamp = int(time.time() * 1000000)  # microseconds
+                filename = f"{timestamp}.webp"
+                
+                image.save(
+                    os.path.join(screenshots_path, filename),
+                    format="webp",
+                    lossless=False,
+                    quality=50,
+                )
+                
+                # 3. Create DB entry (even if text is empty)
+                embedding: np.ndarray = get_embedding(text) if text.strip() else np.zeros(384) # Zero embedding if no text
+                active_app_name: str = get_active_app_name() or "Unknown App"
+                active_window_title: str = get_active_window_title() or "Unknown Title"
+                
+                insert_entry(
+                    text, timestamp, embedding, active_app_name, active_window_title, words_coords
+                )
 
         time.sleep(3) # Wait before taking the next screenshot
