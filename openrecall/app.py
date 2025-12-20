@@ -913,8 +913,8 @@ def timeline_v2():
   </div>
 
   <script>
-    const timestamps = {{timestamps|tojson}};
-    const entriesData = {{entries_dict|tojson}};
+    let timestamps = {{timestamps|tojson}};
+    let entriesData = {{entries_dict|tojson}};
     const slider = document.getElementById('timelineSlider');
     const dateEl = document.getElementById('timelineDate');
     const screenshot = document.getElementById('screenshot');
@@ -925,6 +925,45 @@ def timeline_v2():
     
     let currentEntry = null;
     let searchTimeout = null;
+
+    // Smart Sync Logic
+    let syncInterval = null;
+
+    async function syncData() {
+      if (timestamps.length === 0) return;
+      const lastKnown = timestamps[0];
+      try {
+        const response = await fetch(`/api/sync?since=${lastKnown}`);
+        const data = await response.json();
+        if (data.timestamps && data.timestamps.length > 0) {
+          timestamps = [...data.timestamps, ...timestamps];
+          entriesData = {...entriesData, ...data.entries};
+          slider.max = timestamps.length - 1;
+          console.log(`Synced ${data.timestamps.length} new entries.`);
+        }
+      } catch (e) { console.error("Sync failed", e); }
+    }
+
+    function startSync() {
+      syncData();
+      if (!syncInterval) syncInterval = setInterval(syncData, 2000);
+    }
+
+    function stopSync() {
+      if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
+      }
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === 'visible') startSync();
+      else stopSync();
+    });
+    window.addEventListener("focus", startSync);
+    window.addEventListener("blur", stopSync);
+
+    if (document.visibilityState === 'visible') startSync();
     
     // Update display
     function updateDisplay(timestamp) {

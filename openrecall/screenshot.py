@@ -113,6 +113,12 @@ def record_screenshots_thread():
     last_screenshots = take_screenshots()
 
     while True:
+        # Avoid recording the recorder (OpenRecall itself)
+        active_title = get_active_window_title()
+        if active_title and "OpenRecall" in active_title:
+            time.sleep(1)
+            continue
+
         if not is_user_active():
             time.sleep(3)
             continue
