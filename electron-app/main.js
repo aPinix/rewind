@@ -22,9 +22,8 @@ function createWindow() {
       nodeIntegration: false,
       enableRemoteModule: false
     },
-    skipTaskbar: true,  // Don't show in dock when hidden
-    fullscreenable: true,
-    simpleFullscreen: true  // Use simple fullscreen for faster transitions
+    skipTaskbar: true,
+    simpleFullscreen: true
   });
 
   mainWindow.loadURL(OPENRECALL_URL);
@@ -57,8 +56,7 @@ function showWindow() {
   }
   
   if (mainWindow) {
-    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-    mainWindow.setBounds({ x: 0, y: 0, width, height });
+    mainWindow.setSimpleFullScreen(true);
     mainWindow.show();
     mainWindow.focus();
   }
@@ -66,7 +64,12 @@ function showWindow() {
 
 function hideWindow() {
   if (mainWindow) {
-    mainWindow.hide();
+    mainWindow.setSimpleFullScreen(false);
+    setTimeout(() => {
+      if (mainWindow) {
+        mainWindow.hide();
+      }
+    }, 100);
   }
 }
 
@@ -111,13 +114,13 @@ app.whenReady().then(() => {
   
   // Don't show app in dock
   app.dock.hide();
-  
-  // Create window but don't show it
-  createWindow();
 
   // Register global shortcut: Cmd+Shift+Space
   const ret = globalShortcut.register('CommandOrControl+Shift+Space', () => {
     console.log('🎯 Hotkey pressed: Cmd+Shift+Space');
+    if (mainWindow && mainWindow.isVisible()) {
+      return;
+    }
     showWindow();
   });
 
