@@ -43,7 +43,8 @@
     "files": [
       "main.js",
       "preload.js",
-      "package.json"
+      "package.json",
+      "tray-icon.png"
     ],
     "directories": {
       "output": "dist",
