@@ -1,8 +1,9 @@
-const { app, BrowserWindow, globalShortcut, screen } = require('electron');
+const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 
 const OPENRECALL_URL = 'http://localhost:8082';
 let mainWindow = null;
+let tray = null;
 
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -21,9 +22,9 @@ function createWindow() {
       nodeIntegration: false,
       enableRemoteModule: false
     },
-    skipTaskbar: false,
+    skipTaskbar: true,  // Don't show in dock when hidden
     fullscreenable: true,
-    simpleFullscreen: false
+    simpleFullscreen: true  // Use simple fullscreen for faster transitions
   });
 
   mainWindow.loadURL(OPENRECALL_URL);
@@ -64,12 +65,78 @@ function showWindow() {
 
 function hideWindow() {
   if (mainWindow) {
-    mainWindow.setFullScreen(false);
-    mainWindow.hide();
+    // Check if in fullscreen
+    if (mainWindow.isFullScreen()) {
+      // Exit fullscreen first, then hide after animation
+      mainWindow.once('leave-full-screen', () => {
+        mainWindow.hide();
+      });
+      mainWindow.setFullScreen(false);
+    } else {
+      // Not in fullscreen, hide immediately
+      mainWindow.hide();
+    }
   }
 }
 
+function createTray() {
+  // Try to load icon from file, fallback to embedded icon
+  let icon;
+  const iconPath = path.join(__dirname, 'tray-icon.png');
+  const fs = require('fs');
+  
+  if (fs.existsSync(iconPath)) {
+    icon = nativeImage.createFromPath(iconPath);
+  } else {
+    // Fallback: simple embedded icon (small circle)
+    icon = nativeImage.createFromDataURL(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAA7AAAAOwBeShxvQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAFNSURBVFiF7ZaxSgNBEIa/2SwJBEttLGwtLSzt7KwsLe0sLO0sLO0sLIR0NoKFhYWFhYWFhYWFhYWFhYWFhVhY+AI+gI8gwZ3lLuTubvcul+TD7c7Mf/+dmd0dWGeddVoVIAU8AA/AM5ACEn9FTgJ54N0xnwgJ4BJ4rYnzwCWQuCsCwngduPpL5BRwA7zVxDlgFpgFboFXYAaY+xPkJPAGvNTEWWAe2ATOgYS2D20MzAMbwJnMXQIXfsXNkRvAVU2cBZaBe2AJSAbIScA9sAwsy7odYAQ4AW6ADeCkWUEZn7x/bZz3LyQHNx51wCvAMzACPACHQAZ41X0yMfKSMgq8AweBJSAP5IBp4A3YBg6AI+Aw9ANovvfAPlAEisBOHdltkS3HNoAsUAL2gD3gCNgFdoA9YNt1D/wHsM466/wAX5hiiQaKfN3cAAAAAElFTkSuQmCC'
+    );
+  }
+  
+  tray = new Tray(icon.resize({ width: 16, height: 16 }));
+  tray.setPressedImage(icon.resize({ width: 16, height: 16 }));
+  
+  const contextMenu = Menu.buildFromTemplate([
+    { 
+      label: 'Show OpenRecall', 
+      click: () => showWindow(),
+      accelerator: 'CommandOrControl+Shift+Space'
+    },
+    { type: 'separator' },
+    { 
+      label: 'About OpenRecall',
+      click: () => {
+        console.log('OpenRecall v1.0.0 - Screen Memory for macOS');
+      }
+    },
+    { type: 'separator' },
+    { 
+      label: 'Quit', 
+      click: () => {
+        app.isQuitting = true;
+        app.quit();
+      },
+      accelerator: 'CommandOrControl+Q'
+    }
+  ]);
+  
+  tray.setToolTip('OpenRecall - Cmd+Shift+Space to open');
+  tray.setContextMenu(contextMenu);
+  
+  // Click on tray icon to show window
+  tray.on('click', () => {
+    showWindow();
+  });
+}
+
 app.whenReady().then(() => {
+  // Don't show app in dock
+  app.dock.hide();
+  
+  // Create tray icon
+  createTray();
+  
   // Create window but don't show it
   createWindow();
 
@@ -96,6 +163,7 @@ app.whenReady().then(() => {
   console.log('='.repeat(50));
   console.log('⌨️  Cmd+Shift+Space: Open/Focus OpenRecall');
   console.log('⎋  ESC: Close OpenRecall window');
+  console.log('📍 Tray icon: Click to open');
   console.log('='.repeat(50));
 
   app.on('activate', () => {
@@ -107,7 +175,10 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   // Keep app running even if window is closed
-  // Don't quit on window close (macOS behavior)
+  // Only quit if explicitly requested
+  if (app.isQuitting) {
+    app.quit();
+  }
 });
 
 app.on('will-quit', () => {

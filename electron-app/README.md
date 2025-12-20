@@ -14,11 +14,22 @@ Questo script:
 2. Installa le dipendenze Electron se necessario
 3. Lancia l'app Electron
 
+**Nota**: L'app apparirà solo nella **tray (barra menu)**, non nel Dock!
+
 ## ⌨️ Shortcuts
 
 - **Cmd+Shift+Space**: Apri/Mostra OpenRecall
-- **ESC**: Nascondi la finestra
+- **ESC**: Nascondi la finestra (funziona anche da fullscreen!)
 - **Cmd+Q**: Esci completamente
+- **Click su icona tray**: Apri OpenRecall
+
+## 🎯 Icona Tray
+
+L'app vive nella barra menu in alto (tray). Clicca sull'icona per:
+- Aprire OpenRecall
+- Vedere il menu (About, Quit)
+
+Non cercare l'app nel Dock - è solo nella tray! 📍
 
 ## 📦 Setup Iniziale
 
