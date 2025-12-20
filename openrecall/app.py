@@ -375,6 +375,7 @@ class StringLoader(BaseLoader):
 app.jinja_env.loader = StringLoader()
 
 
+@app.route("/")
 @app.route("/timeline-v2")
 def timeline_v2():
     """New Rewind.ai style interface"""
@@ -413,14 +414,14 @@ def timeline_v2():
     .search-wrapper { position: relative; }
     .search-input {
       width: min(400px, calc(100vw - 100px)); padding: 12px 45px 12px 20px; border-radius: 24px;
-      border: 1px solid rgba(255,255,255,0.2); background: rgba(30,30,30,0.9);
-      backdrop-filter: blur(20px); color: #fff; font-size: 15px; transition: all 0.2s;
+      border: 1px solid rgba(255,255,255,0.15); background: rgba(20,20,20,0.75);
+      backdrop-filter: blur(30px); color: #fff; font-size: 15px; transition: all 0.2s;
     }
     .search-input:focus {
-      outline: none; border-color: rgba(0,123,255,0.6);
-      background: rgba(40,40,40,0.95); box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      outline: none; border-color: rgba(0,123,255,0.5);
+      background: rgba(30,30,30,0.85); box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     }
-    .search-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.5); }
+    .search-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.4); }
     
     /* Search results */
     .search-results {
@@ -457,7 +458,7 @@ def timeline_v2():
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: max(80px, 10vh) max(20px, 2vw) max(120px, 15vh);
+      padding: 0;
     }
     .screenshot-wrapper { 
       position: relative; 
@@ -468,10 +469,8 @@ def timeline_v2():
       justify-content: center;
     }
     .screenshot-wrapper img {
-      max-width: 100%; 
-      max-height: 100%; 
-      width: auto;
-      height: auto;
+      width: 100%;
+      height: 100%;
       object-fit: contain; 
       border-radius: 8px;
       box-shadow: 0 20px 80px rgba(0,0,0,0.5);
@@ -494,13 +493,13 @@ def timeline_v2():
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
     }
     .timeline-pill {
-      background: rgba(30,30,30,0.95); backdrop-filter: blur(40px); border-radius: 32px;
-      padding: 16px 32px; border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(20,20,20,0.75); backdrop-filter: blur(30px); border-radius: 32px;
+      padding: 16px 32px; border: 1px solid rgba(255,255,255,0.12);
       box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column;
       align-items: center; gap: 12px; min-width: 400px;
     }
     .timeline-date {
-      font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.9); letter-spacing: 0.3px;
+      font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.85); letter-spacing: 0.3px;
     }
     .timeline-slider {
       width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
@@ -559,13 +558,13 @@ def timeline_v2():
     /* Sidebar toggle button */
     .sidebar-toggle {
       position: fixed; top: 20px; left: 20px; z-index: 1000;
-      background: rgba(30,30,30,0.9); backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+      background: rgba(20,20,20,0.75); backdrop-filter: blur(30px);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
       width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 0.2s; color: rgba(255,255,255,0.7);
+      cursor: pointer; transition: all 0.2s; color: rgba(255,255,255,0.6);
     }
     .sidebar-toggle:hover {
-      background: rgba(40,40,40,0.95); border-color: rgba(0,123,255,0.6);
+      background: rgba(30,30,30,0.85); border-color: rgba(0,123,255,0.5);
       color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
     
@@ -632,20 +631,6 @@ def timeline_v2():
     }
     .ocr-mode-label {
       font-size: 13px; color: rgba(255,255,255,0.8);
-    }
-    
-    /* Interface switcher */
-    .interface-switcher {
-      position: fixed; bottom: 20px; right: 20px; z-index: 1000;
-      background: rgba(30,30,30,0.9); backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
-      padding: 8px 16px; color: rgba(255,255,255,0.7);
-      font-size: 13px; cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .interface-switcher:hover {
-      background: rgba(40,40,40,0.95); border-color: rgba(0,123,255,0.6);
-      color: #fff;
     }
     
     /* AI Config Modal */
@@ -773,13 +758,6 @@ def timeline_v2():
         height: 40px;
       }
       
-      .interface-switcher {
-        bottom: 15px;
-        right: 15px;
-        padding: 6px 12px;
-        font-size: 11px;
-      }
-      
       .config-modal {
         width: 90vw;
       }
@@ -851,11 +829,6 @@ def timeline_v2():
         <pre id="extractedText"></pre>
       </div>
     </div>
-    
-    <!-- Interface switcher -->
-    <a href="/" class="interface-switcher" title="Switch to classic view">
-      <i class="bi bi-grid-3x3"></i> Classic View
-    </a>
     
     <!-- Search bar -->
     <div class="search-container">
@@ -1403,7 +1376,7 @@ def api_search():
     return jsonify(results)
 
 
-@app.route("/")
+@app.route("/classic")
 def timeline():
     # connect to db
     timestamps = get_timestamps()
