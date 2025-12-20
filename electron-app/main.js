@@ -74,10 +74,10 @@ function hideWindow() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, 'tray-iconTemplate@2x.png');
+  const iconPath = path.join(__dirname, 'tray-iconTemplate.png');
   const icon = nativeImage.createFromPath(iconPath);
   // if you want to resize it, be careful, it creates a copy
-  const trayIcon = icon.resize({ width: 44 });
+  const trayIcon = icon.resize({ width: 22 });
   // here is the important part (has to be set on the resized version)
   trayIcon.setTemplateImage(true);
   tray = new Tray(trayIcon);
