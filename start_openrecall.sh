@@ -9,40 +9,41 @@ mkdir -p "$LOG_DIR"
 APP_LOG="$LOG_DIR/openrecall.log"
 HOTKEY_LOG="$LOG_DIR/hotkey.log"
 PID_FILE="$LOG_DIR/openrecall.pid"
+APP_PID_FILE="$LOG_DIR/app.pid"
+HOTKEY_PID_FILE="$LOG_DIR/hotkey.pid"
 
 # Function to check if already running
 is_running() {
-    if [ -f "$PID_FILE" ]; then
-        PID=$(cat "$PID_FILE")
-        if ps -p $PID > /dev/null 2>&1; then
-            return 0
-        fi
+    # Check if server is running on port 8082
+    if lsof -i :8082 -sTCP:LISTEN > /dev/null 2>&1; then
+        return 0
     fi
     return 1
 }
 
 # Function to stop running instance
 stop() {
-    if [ -f "$PID_FILE" ]; then
-        echo "🛑 Stopping OpenRecall..."
-        PID=$(cat "$PID_FILE")
-        
-        # Kill child processes
-        pkill -P $PID 2>/dev/null
-        kill $PID 2>/dev/null
-        
-        rm -f "$PID_FILE"
-        echo "✅ OpenRecall stopped"
-    else
-        echo "ℹ️  OpenRecall is not running"
-    fi
+    echo "🛑 Stopping OpenRecall..."
+    
+    # Kill all Python processes running openrecall
+    ps aux | grep -i "[p]ython.*openrecall" | awk '{print $2}' | while read pid; do
+        kill -9 $pid 2>/dev/null
+    done
+    
+    # Also kill any uv processes
+    ps aux | grep -i "[u]v run.*openrecall" | awk '{print $2}' | while read pid; do
+        kill -9 $pid 2>/dev/null
+    done
+    
+    rm -f "$PID_FILE" "$APP_PID_FILE" "$HOTKEY_PID_FILE"
+    sleep 1
+    echo "✅ OpenRecall stopped"
 }
 
 # Function to show status
 status() {
     if is_running; then
-        PID=$(cat "$PID_FILE")
-        echo "✅ OpenRecall is running (PID: $PID)"
+        echo "✅ OpenRecall is running"
         echo "📝 Logs: $LOG_DIR"
         echo "⌨️  Hotkey: Cmd+Shift+Space to open"
         echo "⎋  ESC: Close window"
@@ -84,65 +85,43 @@ fi
 
 echo "🚀 Starting OpenRecall in background..."
 
-# Start everything in background
-(
-    # Start OpenRecall server
-    cd "$DIR"
-    uv run -m openrecall.app > "$APP_LOG" 2>&1 &
-    APP_PID=$!
-    
-    # Wait for server to start
-    sleep 3
-    
-    # Check if server started successfully
-    if ! kill -0 $APP_PID 2>/dev/null; then
-        echo "❌ Failed to start OpenRecall server. Check $APP_LOG"
-        exit 1
-    fi
-    
-    # Start hotkey listener
-    uv run "$DIR/launch_openrecall.py" > "$HOTKEY_LOG" 2>&1 &
-    HOTKEY_PID=$!
-    
-    # Wait a moment to check if hotkey listener started
-    sleep 1
-    if ! kill -0 $HOTKEY_PID 2>/dev/null; then
-        echo "❌ Failed to start hotkey listener. Check $HOTKEY_LOG"
-        kill $APP_PID 2>/dev/null
-        exit 1
-    fi
-    
-    # Save main PID
-    echo $$ > "$PID_FILE"
-    
-    # Wait for processes
-    wait $APP_PID $HOTKEY_PID
-    
-    # Cleanup
-    rm -f "$PID_FILE"
-    
-) &
+# Start OpenRecall server
+cd "$DIR"
+nohup uv run -m openrecall.app > "$APP_LOG" 2>&1 &
+APP_PID=$!
+echo $APP_PID > "$APP_PID_FILE"
 
-# Detach from terminal
-disown
+echo "⏳ Waiting for server to start..."
+sleep 3
 
-# Wait a moment to check if started successfully
-sleep 2
-
-if is_running; then
-    echo ""
-    echo "✅ OpenRecall started successfully!"
-    echo ""
-    echo "⌨️  Press Cmd+Shift+Space to open OpenRecall"
-    echo "⎋  Press ESC to close the window"
-    echo ""
-    echo "📝 Logs: $LOG_DIR"
-    echo "🛑 To stop: $0 stop"
-    echo ""
-else
-    echo ""
-    echo "❌ Failed to start OpenRecall"
-    echo "📝 Check logs in: $LOG_DIR"
-    echo ""
+# Check if server started successfully
+if ! ps -p $APP_PID > /dev/null 2>&1; then
+    echo "❌ Failed to start OpenRecall server. Check $APP_LOG"
+    cat "$APP_LOG" | tail -20
     exit 1
 fi
+
+# Start hotkey listener
+nohup uv run "$DIR/launch_openrecall.py" > "$HOTKEY_LOG" 2>&1 &
+HOTKEY_PID=$!
+echo $HOTKEY_PID > "$HOTKEY_PID_FILE"
+
+sleep 1
+
+# Check if hotkey listener started
+if ! ps -p $HOTKEY_PID > /dev/null 2>&1; then
+    echo "❌ Failed to start hotkey listener. Check $HOTKEY_LOG"
+    cat "$HOTKEY_LOG" | tail -20
+    kill -9 $APP_PID 2>/dev/null
+    exit 1
+fi
+
+echo ""
+echo "✅ OpenRecall started successfully!"
+echo ""
+echo "⌨️  Press Cmd+Shift+Space to open OpenRecall"
+echo "⎋  Press ESC to close the window"
+echo ""
+echo "📝 Logs: $LOG_DIR"
+echo "🛑 To stop: $0 stop"
+echo ""

@@ -54,17 +54,32 @@ def open_fullscreen_browser():
     """Open browser in app mode (like Electron)"""
     global browser_process, window_id
     
-    # If already open, just focus it
-    if browser_process and browser_process.poll() is None:
-        print("🔄 Focusing existing window...")
-        applescript = '''
-        tell application "Google Chrome"
-            activate
-        end tell
-        '''
-        subprocess.run(['osascript', '-e', applescript], 
-                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return
+    # Try to focus existing window first
+    applescript_focus = '''
+    tell application "Google Chrome"
+        set windowList to every window
+        repeat with aWindow in windowList
+            set tabList to every tab of aWindow
+            repeat with aTab in tabList
+                if URL of aTab contains "localhost:8082" then
+                    set index of aWindow to 1
+                    activate
+                    return true
+                end if
+            end repeat
+        end repeat
+        return false
+    end tell
+    '''
+    
+    try:
+        result = subprocess.run(['osascript', '-e', applescript_focus], 
+                              capture_output=True, text=True, timeout=2)
+        if result.stdout.strip() == 'true':
+            print("🔄 Focusing existing window...")
+            return
+    except:
+        pass
     
     print("🚀 Launching OpenRecall...")
     
@@ -120,6 +135,11 @@ def on_press(key):
     """Handle key press"""
     global current_keys
     
+    # Check for ESC first (close window) - don't add to current_keys
+    if key == Key.esc:
+        close_openrecall_window()
+        return
+    
     current_keys.add(key)
     
     # Check for Cmd+Shift+Space (open)
@@ -129,11 +149,6 @@ def on_press(key):
         Key.space in current_keys
     ]):
         open_fullscreen_browser()
-        current_keys.clear()
-    
-    # Check for ESC (close window)
-    elif key == Key.esc:
-        close_openrecall_window()
         current_keys.clear()
 
 def on_release(key):

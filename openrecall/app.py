@@ -2243,6 +2243,19 @@ def ai_config():
 
 
 if __name__ == "__main__":
+    import socket
+    import sys
+    
+    # Check if port is already in use
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    port_in_use = sock.connect_ex(('localhost', 8082)) == 0
+    sock.close()
+    
+    if port_in_use:
+        print("❌ Port 8082 is already in use. OpenRecall is already running.")
+        print("💡 Use the hotkey (Cmd+Shift+Space) to open the interface.")
+        sys.exit(1)
+    
     create_db()
 
     print(f"Appdata folder: {appdata_folder}")
