@@ -338,6 +338,9 @@ base_template = """
 <a href="/" class="home-icon" title="Home">
   <i class="bi bi-house-fill" style="font-size: 1.5rem; color: #007bff;"></i>
 </a>
+<a href="/timeline-v2" class="fullscreen-link" title="Fullscreen View">
+  <i class="bi bi-fullscreen"></i>
+</a>
 <nav class="navbar navbar-light bg-light">
   <div class="container">
     <form class="form-inline my-2 my-lg-0 w-100 d-flex" action="/search" method="get">
@@ -443,12 +446,31 @@ def timeline_v2():
     
     /* Screenshot area */
     .screenshot-area {
-      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-      padding: 60px 40px 140px; position: relative;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 40px 140px;
     }
-    .screenshot-wrapper { position: relative; max-width: 100%; max-height: 100%; }
+    .screenshot-wrapper { 
+      position: relative; 
+      max-width: 100%; 
+      max-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .screenshot-wrapper img {
-      max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;
+      max-width: 100%; 
+      max-height: 100%; 
+      width: auto;
+      height: auto;
+      object-fit: contain; 
+      border-radius: 8px;
       box-shadow: 0 20px 80px rgba(0,0,0,0.5);
     }
     .text-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
@@ -530,10 +552,223 @@ def timeline_v2():
       font-size: 24px; cursor: pointer; padding: 0; line-height: 1;
     }
     .close-btn:hover { color: #fff; }
+    
+    /* Sidebar toggle button */
+    .sidebar-toggle {
+      position: fixed; top: 20px; left: 20px; z-index: 1000;
+      background: rgba(30,30,30,0.9); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+      width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; color: rgba(255,255,255,0.7);
+    }
+    .sidebar-toggle:hover {
+      background: rgba(40,40,40,0.95); border-color: rgba(0,123,255,0.6);
+      color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      position: fixed; top: 0; left: -400px; width: 400px; height: 100vh;
+      background: rgba(20,20,20,0.98); backdrop-filter: blur(40px);
+      border-right: 1px solid rgba(255,255,255,0.1); box-shadow: 0 0 60px rgba(0,0,0,0.8);
+      z-index: 1100; transition: left 0.3s ease; padding: 80px 24px 24px;
+      overflow-y: auto;
+    }
+    .sidebar.open { left: 0; }
+    .sidebar-close {
+      position: absolute; top: 20px; right: 20px; background: none; border: none;
+      color: rgba(255,255,255,0.6); font-size: 24px; cursor: pointer; padding: 0;
+    }
+    .sidebar-close:hover { color: #fff; }
+    .sidebar-section {
+      margin-bottom: 24px; padding: 16px; background: rgba(255,255,255,0.03);
+      border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);
+    }
+    .sidebar-section h3 {
+      font-size: 14px; font-weight: 600; margin-bottom: 12px;
+      color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .sidebar-section pre {
+      white-space: pre-wrap; word-wrap: break-word; margin: 0;
+      font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.5;
+    }
+    .sidebar-btn {
+      width: 100%; padding: 10px 16px; margin-bottom: 8px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.9); cursor: pointer; font-size: 14px;
+      transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+    }
+    .sidebar-btn:hover {
+      background: rgba(255,255,255,0.1); border-color: rgba(0,123,255,0.6);
+    }
+    .sidebar-btn.primary {
+      background: rgba(0,123,255,0.8); border-color: rgba(0,123,255,1);
+    }
+    .sidebar-btn.primary:hover { background: rgba(0,123,255,1); }
+    
+    /* Toggle switch */
+    .toggle-switch {
+      position: relative; display: inline-block; width: 48px; height: 26px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255,255,255,0.2); transition: 0.3s; border-radius: 26px;
+    }
+    .toggle-slider:before {
+      position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px;
+      background-color: white; transition: 0.3s; border-radius: 50%;
+    }
+    input:checked + .toggle-slider { background-color: #007bff; }
+    input:checked + .toggle-slider:before { transform: translateX(22px); }
+    
+    .ocr-mode-selector {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; background: rgba(255,255,255,0.05);
+      border-radius: 8px; margin-bottom: 16px;
+    }
+    .ocr-mode-label {
+      font-size: 13px; color: rgba(255,255,255,0.8);
+    }
+    
+    /* Interface switcher */
+    .interface-switcher {
+      position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+      background: rgba(30,30,30,0.9); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+      padding: 8px 16px; color: rgba(255,255,255,0.7);
+      font-size: 13px; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .interface-switcher:hover {
+      background: rgba(40,40,40,0.95); border-color: rgba(0,123,255,0.6);
+      color: #fff;
+    }
+    
+    /* AI Config Modal */
+    .config-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000;
+      display: none; align-items: center; justify-content: center;
+    }
+    .config-modal-overlay.show { display: flex; }
+    .config-modal {
+      background: rgba(30,30,30,0.98); backdrop-filter: blur(40px);
+      border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8); width: 500px; max-width: 90vw;
+    }
+    .config-modal-header {
+      padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .config-modal-header h2 {
+      font-size: 18px; font-weight: 600; margin: 0; color: #fff;
+    }
+    .config-modal-body { padding: 24px; }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block; margin-bottom: 8px; font-size: 13px;
+      color: rgba(255,255,255,0.7); font-weight: 500;
+    }
+    .form-group select, .form-group input {
+      width: 100%; padding: 12px 16px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05);
+      color: #fff; font-size: 14px; transition: all 0.2s;
+    }
+    .form-group select:focus, .form-group input:focus {
+      outline: none; border-color: rgba(0,123,255,0.6);
+      background: rgba(255,255,255,0.08);
+    }
+    .form-group small {
+      display: block; margin-top: 6px; font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
+    .config-modal-footer {
+      padding: 20px 24px; border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex; justify-content: flex-end; gap: 12px;
+    }
+    
+    /* Toast notifications */
+    .toast-container {
+      position: fixed; top: 80px; right: 20px; z-index: 4000;
+      display: flex; flex-direction: column; gap: 12px; pointer-events: none;
+    }
+    .toast {
+      background: rgba(30,30,30,0.98); backdrop-filter: blur(40px);
+      border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6); padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px; min-width: 300px;
+      animation: slideIn 0.3s ease-out; pointer-events: auto;
+    }
+    .toast.success { border-left: 3px solid #28a745; }
+    .toast.error { border-left: 3px solid #dc3545; }
+    .toast.info { border-left: 3px solid #007bff; }
+    .toast-icon {
+      font-size: 20px; flex-shrink: 0;
+    }
+    .toast.success .toast-icon { color: #28a745; }
+    .toast.error .toast-icon { color: #dc3545; }
+    .toast.info .toast-icon { color: #007bff; }
+    .toast-content {
+      flex: 1; font-size: 14px; color: rgba(255,255,255,0.9);
+    }
+    .toast-close {
+      background: none; border: none; color: rgba(255,255,255,0.5);
+      cursor: pointer; font-size: 18px; padding: 0; line-height: 1;
+    }
+    .toast-close:hover { color: #fff; }
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
   <div class="fullscreen-container">
+    <!-- Sidebar toggle -->
+    <div class="sidebar-toggle" onclick="toggleSidebar()">
+      <i class="bi bi-list" style="font-size: 24px;"></i>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+      
+      <div class="sidebar-section">
+        <h3>OCR Settings</h3>
+        
+        <div class="ocr-mode-selector">
+          <span class="ocr-mode-label">Basic OCR</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ocrToggle" onchange="toggleOCRMode()">
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="ocr-mode-label">AI OCR</span>
+        </div>
+        
+        <button class="sidebar-btn primary" onclick="runAIOCR()" id="btnRunAI">
+          <i class="bi bi-stars"></i> Run AI Text
+        </button>
+        <button class="sidebar-btn" onclick="showAIConfig()">
+          <i class="bi bi-gear"></i> Configure AI Provider
+        </button>
+      </div>
+      
+      <div class="sidebar-section">
+        <h3>Extracted Text</h3>
+        <button class="sidebar-btn" onclick="copyExtractedText()" style="margin-bottom: 12px;">
+          <i class="bi bi-clipboard"></i> Copy All
+        </button>
+        <pre id="extractedText"></pre>
+      </div>
+    </div>
+    
+    <!-- Interface switcher -->
+    <a href="/" class="interface-switcher" title="Switch to classic view">
+      <i class="bi bi-grid-3x3"></i> Classic View
+    </a>
+    
     <!-- Search bar -->
     <div class="search-container">
       <div class="search-wrapper">
@@ -562,6 +797,41 @@ def timeline_v2():
       </div>
     </div>
   </div>
+  
+  <!-- AI Config Modal -->
+  <div class="config-modal-overlay" id="configModalOverlay" onclick="if(event.target===this) closeAIConfig()">
+    <div class="config-modal">
+      <div class="config-modal-header">
+        <h2>AI Provider Settings</h2>
+        <button class="close-btn" onclick="closeAIConfig()">&times;</button>
+      </div>
+      <div class="config-modal-body">
+        <div class="form-group">
+          <label>AI Provider</label>
+          <select id="aiProvider">
+            <option value="gemini">Google Gemini</option>
+            <option value="openai">OpenAI (GPT-4o)</option>
+            <option value="claude">Anthropic Claude</option>
+          </select>
+          <small>Choose your preferred AI provider for enhanced OCR</small>
+        </div>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="aiApiKey" placeholder="Enter your API key">
+          <small>Your API key is stored locally and never sent to our servers</small>
+        </div>
+      </div>
+      <div class="config-modal-footer">
+        <button class="btn btn-secondary" onclick="closeAIConfig()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAIConfig()">
+          <i class="bi bi-check-lg"></i> Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
   
   <!-- Text popup -->
   <div class="text-popup-overlay" id="textPopupOverlay" onclick="closeTextPopup()"></div>
@@ -604,6 +874,7 @@ def timeline_v2():
       });
       currentEntry = entriesData[timestamp];
       screenshot.onload = renderOverlay;
+      updateExtractedText();
     }
     
     // Slider
@@ -822,8 +1093,180 @@ def timeline_v2():
       }
     }
     
+    // Sidebar
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+    
+    let currentOCRMode = 'basic';
+    let aiConfig = null;
+    
+    fetch('/api/config').then(r => r.json()).then(c => aiConfig = c);
+    
+    function toggleOCRMode() {
+      const toggle = document.getElementById('ocrToggle');
+      currentOCRMode = toggle.checked ? 'ai' : 'basic';
+      updateExtractedText();
+    }
+    
+    function showOCRMode(mode) {
+      currentOCRMode = mode;
+      document.getElementById('ocrToggle').checked = (mode === 'ai');
+      updateExtractedText();
+    }
+    
+    async function runAIOCR() {
+      if (!currentEntry) {
+        showToast('No screenshot selected', 'error');
+        return;
+      }
+      
+      const btn = document.getElementById('btnRunAI');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+      
+      // Show info toast about processing time
+      showToast('AI OCR is processing... This may take 10-30 seconds as the AI analyzes the entire screenshot.', 'info');
+      
+      try {
+        const configResp = await fetch('/api/config?full=true');
+        const fullConfig = await configResp.json();
+        
+        if (!fullConfig.api_key || fullConfig.api_key === '***' || fullConfig.api_key === '') {
+          showToast('Please configure AI settings first', 'error');
+          showAIConfig();
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-stars"></i> Run AI Text';
+          return;
+        }
+        
+        const response = await fetch('/api/ai-ocr', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            timestamp: currentEntry.timestamp,
+            provider: fullConfig.provider || 'gemini',
+            api_key: fullConfig.api_key
+          })
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'AI OCR failed');
+        }
+        
+        const result = await response.json();
+        currentEntry.ai_text = result.text;
+        currentEntry.ai_words_coords = result.words_coords;
+        entriesData[currentEntry.timestamp].ai_text = result.text;
+        entriesData[currentEntry.timestamp].ai_words_coords = result.words_coords;
+        
+        showOCRMode('ai');
+        showToast('AI OCR completed successfully! ✨', 'success');
+      } catch (error) {
+        showToast('AI OCR error: ' + error.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-stars"></i> Run AI Text';
+      }
+    }
+    
+    // Toast notifications
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      const iconMap = {
+        success: 'bi-check-circle-fill',
+        error: 'bi-x-circle-fill',
+        info: 'bi-info-circle-fill'
+      };
+      
+      toast.innerHTML = `
+        <i class="bi ${iconMap[type]} toast-icon"></i>
+        <div class="toast-content">${message}</div>
+        <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+      `;
+      
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+    
+    // AI Config Modal
+    function showAIConfig() {
+      const modal = document.getElementById('configModalOverlay');
+      
+      // Load current config
+      if (aiConfig) {
+        document.getElementById('aiProvider').value = aiConfig.provider || 'gemini';
+      }
+      
+      modal.classList.add('show');
+    }
+    
+    function closeAIConfig() {
+      document.getElementById('configModalOverlay').classList.remove('show');
+      document.getElementById('aiApiKey').value = '';
+    }
+    
+    async function saveAIConfig() {
+      const provider = document.getElementById('aiProvider').value;
+      const apiKey = document.getElementById('aiApiKey').value;
+      
+      if (!apiKey) {
+        showToast('Please enter an API key', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({provider, api_key: apiKey})
+        });
+        
+        if (response.ok) {
+          aiConfig = {provider, api_key: '***'};
+          closeAIConfig();
+          showToast('AI settings saved successfully!', 'success');
+        } else {
+          showToast('Failed to save settings', 'error');
+        }
+      } catch (error) {
+        showToast('Error: ' + error.message, 'error');
+      }
+    }
+    
+    function copyExtractedText() {
+      const text = document.getElementById('extractedText').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Text copied to clipboard!', 'success');
+      }).catch(() => {
+        showToast('Failed to copy text', 'error');
+      });
+    }
+    
+    function copyPopupText() {
+      const text = document.getElementById('popupText').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Text copied to clipboard!', 'success');
+      }).catch(() => {
+        showToast('Failed to copy text', 'error');
+      });
+    }
+    
+    // Update extracted text on change
+    function updateExtractedText() {
+      if (currentEntry) {
+        const text = currentOCRMode === 'ai' && currentEntry.ai_text ? currentEntry.ai_text : currentEntry.text;
+        document.getElementById('extractedText').textContent = text || 'No text available';
+      }
+    }
+    
     // Init
     updateDisplay(timestamps[0]);
+    updateExtractedText();
   </script>
 </body>
 </html>
