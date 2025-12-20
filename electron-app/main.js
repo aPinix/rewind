@@ -57,45 +57,25 @@ function showWindow() {
   }
   
   if (mainWindow) {
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+    mainWindow.setBounds({ x: 0, y: 0, width, height });
     mainWindow.show();
-    mainWindow.setFullScreen(true);
     mainWindow.focus();
   }
 }
 
 function hideWindow() {
   if (mainWindow) {
-    // Check if in fullscreen
-    if (mainWindow.isFullScreen()) {
-      // Exit fullscreen first, then hide after animation
-      mainWindow.once('leave-full-screen', () => {
-        mainWindow.hide();
-      });
-      mainWindow.setFullScreen(false);
-    } else {
-      // Not in fullscreen, hide immediately
-      mainWindow.hide();
-    }
+    mainWindow.hide();
   }
 }
 
 function createTray() {
-  // Try to load icon from file, fallback to embedded icon
-  let icon;
   const iconPath = path.join(__dirname, 'tray-icon.png');
-  const fs = require('fs');
+  const icon = nativeImage.createFromPath(iconPath);
+  icon.setTemplateImage(true);
   
-  if (fs.existsSync(iconPath)) {
-    icon = nativeImage.createFromPath(iconPath);
-  } else {
-    // Fallback: simple embedded icon (small circle)
-    icon = nativeImage.createFromDataURL(
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAA7AAAAOwBeShxvQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAFNSURBVFiF7ZaxSgNBEIa/2SwJBEttLGwtLSzt7KwsLe0sLO0sLO0sLIR0NoKFhYWFhYWFhYWFhYWFhYWFhVhY+AI+gI8gwZ3lLuTubvcul+TD7c7Mf/+dmd0dWGeddVoVIAU8AA/AM5ACEn9FTgJ54N0xnwgJ4BJ4rYnzwCWQuCsCwngduPpL5BRwA7zVxDlgFpgFboFXYAaY+xPkJPAGvNTEWWAe2ATOgYS2D20MzAMbwJnMXQIXfsXNkRvAVU2cBZaBe2AJSAbIScA9sAwsy7odYAQ4AW6ADeCkWUEZn7x/bZz3LyQHNx51wCvAMzACPACHQAZ41X0yMfKSMgq8AweBJSAP5IBp4A3YBg6AI+Aw9ANovvfAPlAEisBOHdltkS3HNoAsUAL2gD3gCNgFdoA9YNt1D/wHsM466/wAX5hiiQaKfN3cAAAAAElFTkSuQmCC'
-    );
-  }
-  
-  tray = new Tray(icon.resize({ width: 16, height: 16 }));
-  tray.setPressedImage(icon.resize({ width: 16, height: 16 }));
+  tray = new Tray(icon);
   
   const contextMenu = Menu.buildFromTemplate([
     { 
@@ -123,19 +103,14 @@ function createTray() {
   
   tray.setToolTip('OpenRecall - Cmd+Shift+Space to open');
   tray.setContextMenu(contextMenu);
-  
-  // Click on tray icon to show window
-  tray.on('click', () => {
-    showWindow();
-  });
 }
 
 app.whenReady().then(() => {
+  // Create tray icon first
+  createTray();
+  
   // Don't show app in dock
   app.dock.hide();
-  
-  // Create tray icon
-  createTray();
   
   // Create window but don't show it
   createWindow();

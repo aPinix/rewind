@@ -9,11 +9,17 @@
     "build-mac": "electron-builder --mac",
     "pack": "electron-builder --dir"
   },
-  "keywords": ["openrecall", "screen", "memory", "ocr"],
+  "keywords": [
+    "openrecall",
+    "screen",
+    "memory",
+    "ocr"
+  ],
   "author": "OpenRecall",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.1.0",
+    "canvas": "^3.2.0",
+    "electron": "^28.3.3",
     "electron-builder": "^24.9.1"
   },
   "build": {
