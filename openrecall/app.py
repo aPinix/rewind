@@ -1415,6 +1415,44 @@ def api_search():
     return jsonify(results)
 
 
+@app.route("/api/sync")
+def api_sync():
+    """API endpoint to fetch new entries since a timestamp"""
+    try:
+        since = int(request.args.get("since", 0))
+    except ValueError:
+        since = 0
+        
+    entries = get_all_entries()
+    
+    # Filter entries newer than 'since'
+    new_entries = [e for e in entries if e.timestamp > since]
+    
+    if not new_entries:
+        return jsonify({'timestamps': [], 'entries': {}})
+        
+    # Timestamps (descending)
+    new_timestamps = [e.timestamp for e in new_entries]
+    
+    # Entries dictionary
+    new_entries_dict = {
+        entry.timestamp: {
+            'id': entry.id,
+            'text': entry.text,
+            'timestamp': entry.timestamp,
+            'words_coords': entry.words_coords,
+            'ai_text': entry.ai_text,
+            'ai_words_coords': entry.ai_words_coords if entry.ai_words_coords else []
+        }
+        for entry in new_entries
+    }
+    
+    return jsonify({
+        'timestamps': new_timestamps,
+        'entries': new_entries_dict
+    })
+
+
 @app.route("/classic")
 def timeline():
     # connect to db
