@@ -82,6 +82,28 @@ python3 -m openrecall.app
 Open your browser to:
 [http://localhost:8082](http://localhost:8082) to access OpenRecall.
 
+### 🚀 Quick Start with Global Hotkey (macOS)
+
+For a Rewind.ai-like experience with **Cmd+Shift+Space** hotkey:
+
+```bash
+# One-line install
+./install.sh
+
+# Launch the app
+./start_openrecall.sh
+```
+
+Then press **Cmd+Shift+Space** anytime to open OpenRecall in fullscreen!
+
+**Features:**
+- 🎨 Opens in Electron-like app mode (no toolbars, extensions, or bookmarks)
+- 👻 Runs silently in background (no visible terminal)
+- ⌨️ **Cmd+Shift+Space**: Open OpenRecall instantly
+- ⎋ **ESC**: Close the window (app stays running)
+
+See [HOTKEY_SETUP.md](HOTKEY_SETUP.md) for full documentation.
+
 ## Arguments
 `--storage-path` (default: user data path for your OS): allows you to specify the path where the screenshots and database should be stored. We recommend [creating an encrypted volume](docs/encryption.md) to store your data.
 

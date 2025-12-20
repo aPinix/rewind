@@ -1,0 +1,12 @@
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+INFO:openrecall.nlp:SentenceTransformer model 'all-MiniLM-L6-v2' loaded successfully.
+INFO:root:PyTorch version 2.6.0 available.
+INFO:root:Using downloaded & verified file: /Users/xela92/.cache/doctr/models/db_mobilenet_v3_large-81e9b152.pt
+INFO:root:Using downloaded & verified file: /Users/xela92/.cache/doctr/models/crnn_mobilenet_v3_large_pt-f5259ec2.pt
+Appdata folder: /Users/xela92/Library/Application Support/openrecall
+ * Serving Flask app 'app'
+ * Debug mode: off
+Address already in use
+Port 8082 is in use by another program. Either identify and stop that program, or start the server with a different port.
+Batches:   0%|          | 0/2 [00:00<?, ?it/s]Batches:  50%|█████     | 1/2 [00:02<00:02,  2.44s/it]
