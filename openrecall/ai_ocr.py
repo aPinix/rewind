@@ -19,8 +19,8 @@ class AIProvider:
 class GeminiProvider(AIProvider):
     def __init__(self, api_key: str):
         self.api_key = api_key
-        # Use gemini-2.5-flash as requested
-        self.model = "gemini-2.5-flash"
+        # Use gemini-3-flash-preview as requested
+        self.model = "gemini-3-flash-preview"
         self.endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
     
     def ocr_with_positions(self, image_base64: str, basic_ocr_text: str) -> Tuple[str, List[Dict]]:
