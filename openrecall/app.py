@@ -412,7 +412,7 @@ def timeline_v2():
     .search-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
     .search-wrapper { position: relative; }
     .search-input {
-      width: 400px; padding: 12px 45px 12px 20px; border-radius: 24px;
+      width: min(400px, calc(100vw - 100px)); padding: 12px 45px 12px 20px; border-radius: 24px;
       border: 1px solid rgba(255,255,255,0.2); background: rgba(30,30,30,0.9);
       backdrop-filter: blur(20px); color: #fff; font-size: 15px; transition: all 0.2s;
     }
@@ -424,14 +424,17 @@ def timeline_v2():
     
     /* Search results */
     .search-results {
-      position: fixed; top: 80px; right: 20px; width: 850px; max-height: calc(100vh - 120px);
+      position: fixed; top: 80px; right: 20px; 
+      width: min(850px, calc(100vw - 40px)); max-height: calc(100vh - 120px);
       background: rgba(30,30,30,0.98); backdrop-filter: blur(40px); border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.6);
       padding: 20px; overflow-y: auto; display: none; z-index: 999;
     }
     .search-results.show { display: block; }
     .results-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr)); 
+      gap: 16px;
     }
     .result-card {
       background: rgba(50,50,50,0.6); border-radius: 12px; overflow: hidden;
@@ -454,12 +457,12 @@ def timeline_v2():
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 100px 40px 140px;
+      padding: max(80px, 10vh) max(20px, 2vw) max(120px, 15vh);
     }
     .screenshot-wrapper { 
       position: relative; 
-      max-width: 100%; 
-      max-height: 100%;
+      width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -721,6 +724,91 @@ def timeline_v2():
     @keyframes slideIn {
       from { transform: translateX(400px); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 90vw;
+        left: -90vw;
+      }
+      .sidebar.open { left: 0; }
+      
+      .search-input {
+        width: calc(100vw - 80px);
+        font-size: 14px;
+        padding: 10px 40px 10px 16px;
+      }
+      
+      .search-results {
+        top: 70px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        padding: 12px;
+      }
+      
+      .results-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+      }
+      
+      .timeline-pill {
+        min-width: calc(100vw - 40px);
+        padding: 12px 20px;
+      }
+      
+      .timeline-date {
+        font-size: 12px;
+      }
+      
+      .screenshot-area {
+        padding: max(60px, 8vh) 10px max(100px, 12vh);
+      }
+      
+      .sidebar-toggle {
+        top: 15px;
+        left: 15px;
+        width: 40px;
+        height: 40px;
+      }
+      
+      .interface-switcher {
+        bottom: 15px;
+        right: 15px;
+        padding: 6px 12px;
+        font-size: 11px;
+      }
+      
+      .config-modal {
+        width: 90vw;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .search-container {
+        top: 10px;
+        right: 10px;
+        left: 60px;
+      }
+      
+      .search-input {
+        width: 100%;
+      }
+      
+      .timeline-pill {
+        padding: 10px 16px;
+      }
+      
+      .timeline-date {
+        font-size: 11px;
+      }
+      
+      .text-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+      }
     }
   </style>
 </head>
