@@ -44,7 +44,8 @@
       "main.js",
       "preload.js",
       "package.json",
-      "tray-icon.png"
+      "tray-iconTemplate.png",
+      "tray-iconTemplate@2x.png"
     ],
     "directories": {
       "output": "dist",
