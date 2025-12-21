@@ -1,0 +1,8 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+<title>OpenReLife Rewind</title>
+<!-- Circle Background -->
+<circle cx="256" cy="256" r="256" fill="#007bff"/>
+<!-- Rewind Symbol (Two triangles pointing left) -->
+<path d="M246 256L396 146V366L246 256Z" fill="white"/>
+<path d="M116 256L266 146V366L116 256Z" fill="white"/>
+</svg>

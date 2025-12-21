@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage, Notification } = require('electron');
+const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage, Notification, dialog } = require('electron');
 const path = require('path');
 
 const OPENRECALL_URL = 'http://127.0.0.1:8082';
@@ -162,8 +162,14 @@ function updateTrayMenu() {
     { 
       label: 'About OpenReLife',
       click: () => {
-        //alert('OpenReLife v1.0.0 - Screen Memory for macOS')
-        console.log('OpenReLife v1.0.0 - Screen Memory for macOS');
+        dialog.showMessageBox({
+          type: 'info',
+          title: 'About OpenReLife',
+          message: 'OpenReLife v1.0.0',
+          detail: 'Screen Memory for macOS',
+          buttons: ['OK'],
+          icon: path.join(__dirname, 'about-icon.png')
+        });
       }
     },
     { type: 'separator' },
