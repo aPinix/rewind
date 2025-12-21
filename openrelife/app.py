@@ -994,7 +994,7 @@ def timeline_v2():
         e.preventDefault();
         e.stopPropagation();
         
-        accDelta += e.deltaX * 0.5;
+        accDelta += e.deltaX * 0.08;
         const frames = Math.floor(Math.abs(accDelta));
         
         if (frames >= 1) {
@@ -1711,7 +1711,7 @@ def timeline():
     let accumulatedDelta = 0;
     let isScrolling = false;
     let scrollTimeout = null;
-    const sensitivity = 0.5;
+    const sensitivity = 0.25;
     
     // Block back gesture at document level
     document.addEventListener('wheel', function(e) {
