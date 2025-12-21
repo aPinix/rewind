@@ -10,7 +10,7 @@ from PIL import Image
 from openrelife.config import appdata_folder, screenshots_path
 from openrelife.database import create_db, get_all_entries, get_timestamps, update_ai_ocr, delete_entries
 from openrelife.nlp import cosine_similarity, get_embedding
-from openrelife.screenshot import record_screenshots_thread
+from openrelife.screenshot import record_screenshots_thread, get_recording_paused, set_recording_paused
 from openrelife.utils import human_readable_time, timestamp_to_human_readable
 from openrelife.ai_ocr import get_ai_provider
 
@@ -1648,6 +1648,24 @@ def api_sync():
     })
 
 
+
+@app.route("/api/recording-status", methods=["GET"])
+def get_recording_status():
+    return jsonify({"paused": get_recording_paused()})
+
+
+@app.route("/api/pause-recording", methods=["POST"])
+def pause_recording():
+    set_recording_paused(True)
+    return jsonify({"paused": True})
+
+
+@app.route("/api/resume-recording", methods=["POST"])
+def resume_recording():
+    set_recording_paused(False)
+    return jsonify({"paused": False})
+
+
 @app.route("/api/delete", methods=["POST"])
 def api_delete():
     data = request.json
@@ -2541,7 +2559,7 @@ if __name__ == "__main__":
     
     # Check if port is already in use
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    port_in_use = sock.connect_ex(('localhost', 8082)) == 0
+    port_in_use = sock.connect_ex(('127.0.0.1', 8082)) == 0
     sock.close()
     
     if port_in_use:

@@ -104,6 +104,19 @@ def take_screenshots() -> List[np.ndarray]:
     return screenshots
 
 
+
+# Global flag to control recording pause state
+is_recording_paused = False
+
+def set_recording_paused(paused: bool):
+    global is_recording_paused
+    is_recording_paused = paused
+
+def get_recording_paused() -> bool:
+    global is_recording_paused
+    return is_recording_paused
+
+
 def record_screenshots_thread():
     # TODO: fix the error from huggingface tokenizers
     import os
@@ -113,6 +126,11 @@ def record_screenshots_thread():
     last_screenshots = take_screenshots()
 
     while True:
+        # Check if recording is manually paused
+        if is_recording_paused:
+            time.sleep(1)
+            continue
+
         # Avoid recording the recorder (OpenReLife itself)
         active_title = get_active_window_title()
         if active_title and "OpenReLife" in active_title:
@@ -160,3 +178,4 @@ def record_screenshots_thread():
                 )
 
         time.sleep(3) # Wait before taking the next screenshot
+

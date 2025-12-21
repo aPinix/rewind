@@ -1,9 +1,11 @@
-const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage, Notification } = require('electron');
 const path = require('path');
 
-const OPENRECALL_URL = 'http://localhost:8082';
+const OPENRECALL_URL = 'http://127.0.0.1:8082';
 let mainWindow = null;
 let tray = null;
+let isPaused = false;
+let pauseReminderInterval = null;
 
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -73,16 +75,68 @@ function hideWindow() {
   }
 }
 
-function createTray() {
-  const iconPath = path.join(__dirname, 'tray-iconTemplate.png');
-  const icon = nativeImage.createFromPath(iconPath);
-  // if you want to resize it, be careful, it creates a copy
-  const trayIcon = icon.resize({ width: 22 });
-  // here is the important part (has to be set on the resized version)
-  trayIcon.setTemplateImage(true);
-  tray = new Tray(trayIcon);
-  
+
+async function checkRecordingStatus() {
+  try {
+    const res = await fetch(`${OPENRECALL_URL}/api/recording-status`);
+    const data = await res.json();
+    isPaused = data.paused;
+    updateTrayMenu();
+    handlePauseReminder(isPaused);
+  } catch (err) {
+    console.error('Failed to check recording status:', err);
+  }
+}
+
+async function toggleRecording() {
+  try {
+    const endpoint = isPaused ? '/api/resume-recording' : '/api/pause-recording';
+    const res = await fetch(`${OPENRECALL_URL}${endpoint}`, { method: 'POST' });
+    const data = await res.json();
+    isPaused = data.paused;
+    updateTrayMenu();
+    handlePauseReminder(isPaused);
+  } catch (err) {
+    console.error('Failed to toggle recording:', err);
+  }
+}
+
+function handlePauseReminder(paused) {
+  if (paused) {
+    if (!pauseReminderInterval) {
+      // Send reminder every 30 minutes
+      pauseReminderInterval = setInterval(() => {
+        const notification = new Notification({
+          title: 'OpenReLife Paused',
+          body: 'Recording is currently paused. Resume to capture your history.',
+          silent: false
+        });
+        
+        notification.on('click', () => {
+          showWindow();
+        });
+        
+        notification.show();
+      }, 30 * 60 * 1000); 
+    }
+  } else {
+    if (pauseReminderInterval) {
+      clearInterval(pauseReminderInterval);
+      pauseReminderInterval = null;
+    }
+  }
+}
+
+function updateTrayMenu() {
+  if (!tray) return;
+
   const contextMenu = Menu.buildFromTemplate([
+    {
+      label: isPaused ? 'Resume Recording' : 'Pause Recording',
+      click: () => toggleRecording(),
+      icon: isPaused ? null : null // Could add icon here
+    },
+    { type: 'separator' },
     { 
       label: 'Show OpenReLife', 
       click: () => showWindow(),
@@ -106,13 +160,26 @@ function createTray() {
     }
   ]);
   
-  tray.setToolTip('OpenReLife - Cmd+Shift+Space to open');
+  tray.setToolTip(isPaused ? 'OpenReLife (Paused)' : 'OpenReLife - Recording active');
   tray.setContextMenu(contextMenu);
+}
+
+function createTray() {
+  const iconPath = path.join(__dirname, 'tray-iconTemplate.png');
+  const icon = nativeImage.createFromPath(iconPath);
+  const trayIcon = icon.resize({ width: 22 });
+  trayIcon.setTemplateImage(true);
+  
+  tray = new Tray(trayIcon);
+  updateTrayMenu();
 }
 
 app.whenReady().then(() => {
   // Create tray icon first
   createTray();
+  
+  // Check initial recording status
+  checkRecordingStatus();
   
   // Don't show app in dock
   app.dock.hide();
