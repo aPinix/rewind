@@ -64,6 +64,7 @@ function showWindow() {
   }
   
   if (mainWindow) {
+    mainWindow.webContents.send('reset-ui');
     mainWindow.setSimpleFullScreen(true);
     mainWindow.show();
     mainWindow.focus();
@@ -72,6 +73,7 @@ function showWindow() {
 
 function hideWindow() {
   if (mainWindow) {
+    mainWindow.webContents.send('reset-ui');
     mainWindow.setSimpleFullScreen(false);
     setTimeout(() => {
       if (mainWindow) {

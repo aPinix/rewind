@@ -1559,6 +1559,35 @@ def timeline_v2():
       }
     }
     
+    // Electron UI Reset
+    if (window.electronAPI) {
+      window.electronAPI.onResetUI(() => {
+        // Close sidebar
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar && sidebar.classList.contains('open')) {
+          toggleSidebar();
+        }
+        
+        // Close AI config
+        closeAIConfig();
+        
+        // Close text popup
+        closeTextPopup();
+        
+        // Close search results
+        const searchResults = document.getElementById('searchResults');
+        if (searchResults.classList.contains('show')) {
+          searchResults.classList.remove('show');
+          document.getElementById('searchInput').value = '';
+          document.getElementById('searchIcon').style.display = 'block';
+          document.getElementById('searchClear').style.display = 'none';
+        }
+
+        // Exit delete mode
+        if (isDeleteMode) exitDeleteMode();
+      });
+    }
+
     // Init
     updateDisplay(timestamps[0]);
     updateExtractedText();

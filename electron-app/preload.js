@@ -1,5 +1,8 @@
-// Preload script for Electron security
-// This file runs in the renderer process before web content loads
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  onResetUI: (callback) => ipcRenderer.on('reset-ui', (_event, value) => callback(value))
+});
 
 window.addEventListener('DOMContentLoaded', () => {
   console.log('OpenReLife Electron App loaded');
