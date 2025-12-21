@@ -7,12 +7,12 @@ from flask import Flask, render_template_string, request, send_from_directory, j
 from jinja2 import BaseLoader
 from PIL import Image
 
-from openrecall.config import appdata_folder, screenshots_path
-from openrecall.database import create_db, get_all_entries, get_timestamps, update_ai_ocr
-from openrecall.nlp import cosine_similarity, get_embedding
-from openrecall.screenshot import record_screenshots_thread
-from openrecall.utils import human_readable_time, timestamp_to_human_readable
-from openrecall.ai_ocr import get_ai_provider
+from openrelife.config import appdata_folder, screenshots_path
+from openrelife.database import create_db, get_all_entries, get_timestamps, update_ai_ocr
+from openrelife.nlp import cosine_similarity, get_embedding
+from openrelife.screenshot import record_screenshots_thread
+from openrelife.utils import human_readable_time, timestamp_to_human_readable
+from openrelife.ai_ocr import get_ai_provider
 
 app = Flask(__name__)
 
@@ -25,7 +25,7 @@ base_template = """
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenRecall</title>
+  <title>OpenReLife</title>
   <!-- Bootstrap CSS -->
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
@@ -398,7 +398,7 @@ def timeline_v2():
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenRecall</title>
+  <title>OpenReLife</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; overscroll-behavior-x: none; }
@@ -2329,7 +2329,7 @@ if __name__ == "__main__":
     sock.close()
     
     if port_in_use:
-        print("❌ Port 8082 is already in use. OpenRecall is already running.")
+        print("❌ Port 8082 is already in use. OpenReLife is already running.")
         print("💡 Use the hotkey (Cmd+Shift+Space) to open the interface.")
         sys.exit(1)
     

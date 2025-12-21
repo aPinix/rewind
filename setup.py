@@ -48,7 +48,7 @@ if current_os and current_os in extras_require:
 install_requires.extend(extras_require.get("python-doctr", []))
 
 setup(
-    name="OpenRecall",
+    name="OpenReLife",
     version="0.8",
     packages=find_packages(),
     install_requires=install_requires,

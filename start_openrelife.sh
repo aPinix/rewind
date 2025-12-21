@@ -1,14 +1,14 @@
 #!/bin/bash
-# OpenRecall Background Launcher
+# OpenReLife Background Launcher
 # Starts the app and global hotkey listener in background (no visible terminal)
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 LOG_DIR="$DIR/logs"
 mkdir -p "$LOG_DIR"
 
-APP_LOG="$LOG_DIR/openrecall.log"
+APP_LOG="$LOG_DIR/openrelife.log"
 HOTKEY_LOG="$LOG_DIR/hotkey.log"
-PID_FILE="$LOG_DIR/openrecall.pid"
+PID_FILE="$LOG_DIR/openrelife.pid"
 APP_PID_FILE="$LOG_DIR/app.pid"
 HOTKEY_PID_FILE="$LOG_DIR/hotkey.pid"
 
@@ -23,32 +23,32 @@ is_running() {
 
 # Function to stop running instance
 stop() {
-    echo "🛑 Stopping OpenRecall..."
+    echo "🛑 Stopping OpenReLife..."
     
-    # Kill all Python processes running openrecall
-    ps aux | grep -i "[p]ython.*openrecall" | awk '{print $2}' | while read pid; do
+    # Kill all Python processes running openrelife
+    ps aux | grep -i "[p]ython.*openrelife" | awk '{print $2}' | while read pid; do
         kill -9 $pid 2>/dev/null
     done
     
     # Also kill any uv processes
-    ps aux | grep -i "[u]v run.*openrecall" | awk '{print $2}' | while read pid; do
+    ps aux | grep -i "[u]v run.*openrelife" | awk '{print $2}' | while read pid; do
         kill -9 $pid 2>/dev/null
     done
     
     rm -f "$PID_FILE" "$APP_PID_FILE" "$HOTKEY_PID_FILE"
     sleep 1
-    echo "✅ OpenRecall stopped"
+    echo "✅ OpenReLife stopped"
 }
 
 # Function to show status
 status() {
     if is_running; then
-        echo "✅ OpenRecall is running"
+        echo "✅ OpenReLife is running"
         echo "📝 Logs: $LOG_DIR"
         echo "⌨️  Hotkey: Cmd+Shift+Space to open"
         echo "⎋  ESC: Close window"
     else
-        echo "❌ OpenRecall is not running"
+        echo "❌ OpenReLife is not running"
     fi
 }
 
@@ -78,16 +78,16 @@ esac
 
 # Check if already running
 if is_running; then
-    echo "⚠️  OpenRecall is already running!"
+    echo "⚠️  OpenReLife is already running!"
     status
     exit 1
 fi
 
-echo "🚀 Starting OpenRecall in background..."
+echo "🚀 Starting OpenReLife in background..."
 
-# Start OpenRecall server
+# Start OpenReLife server
 cd "$DIR"
-nohup uv run -m openrecall.app > "$APP_LOG" 2>&1 &
+nohup uv run -m openrelife.app > "$APP_LOG" 2>&1 &
 APP_PID=$!
 echo $APP_PID > "$APP_PID_FILE"
 
@@ -96,13 +96,13 @@ sleep 3
 
 # Check if server started successfully
 if ! ps -p $APP_PID > /dev/null 2>&1; then
-    echo "❌ Failed to start OpenRecall server. Check $APP_LOG"
+    echo "❌ Failed to start OpenReLife server. Check $APP_LOG"
     cat "$APP_LOG" | tail -20
     exit 1
 fi
 
 # Start hotkey listener
-nohup uv run "$DIR/launch_openrecall.py" > "$HOTKEY_LOG" 2>&1 &
+nohup uv run "$DIR/launch_openrelife.py" > "$HOTKEY_LOG" 2>&1 &
 HOTKEY_PID=$!
 echo $HOTKEY_PID > "$HOTKEY_PID_FILE"
 
@@ -117,9 +117,9 @@ if ! ps -p $HOTKEY_PID > /dev/null 2>&1; then
 fi
 
 echo ""
-echo "✅ OpenRecall started successfully!"
+echo "✅ OpenReLife started successfully!"
 echo ""
-echo "⌨️  Press Cmd+Shift+Space to open OpenRecall"
+echo "⌨️  Press Cmd+Shift+Space to open OpenReLife"
 echo "⎋  Press ESC to close the window"
 echo ""
 echo "📝 Logs: $LOG_DIR"

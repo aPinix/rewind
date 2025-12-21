@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-OpenRecall Global Hotkey Launcher
-Launch OpenRecall with Cmd+Shift+Space (like Rewind.ai)
+OpenReLife Global Hotkey Launcher
+Launch OpenReLife with Cmd+Shift+Space (like Rewind.ai)
 """
 
 import subprocess
@@ -19,11 +19,11 @@ current_keys = set()
 browser_process = None
 window_id = None
 
-def close_openrecall_window():
-    """Close the OpenRecall window"""
+def close_openrelife_window():
+    """Close the OpenReLife window"""
     global browser_process, window_id
     
-    print("🔒 Closing OpenRecall window...")
+    print("🔒 Closing OpenReLife window...")
     
     # Close the specific Chrome window
     applescript = '''
@@ -81,7 +81,7 @@ def open_fullscreen_browser():
     except:
         pass
     
-    print("🚀 Launching OpenRecall...")
+    print("🚀 Launching OpenReLife...")
     
     # Launch Chrome in app mode (no extensions, no bookmarks bar, minimal UI)
     try:
@@ -111,7 +111,7 @@ def open_fullscreen_browser():
         '''
         subprocess.run(['osascript', '-e', applescript], 
                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print("✅ OpenRecall opened in app mode")
+        print("✅ OpenReLife opened in app mode")
         
     except FileNotFoundError:
         print("❌ Chrome not found, trying Safari...")
@@ -129,7 +129,7 @@ def open_fullscreen_browser():
         '''
         subprocess.run(['osascript', '-e', applescript],
                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print("✅ OpenRecall opened in Safari")
+        print("✅ OpenReLife opened in Safari")
 
 def on_press(key):
     """Handle key press"""
@@ -137,7 +137,7 @@ def on_press(key):
     
     # Check for ESC first (close window) - don't add to current_keys
     if key == Key.esc:
-        close_openrecall_window()
+        close_openrelife_window()
         return
     
     current_keys.add(key)
@@ -161,7 +161,7 @@ def on_release(key):
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully"""
     print("\n👋 Shutting down...")
-    close_openrecall_window()
+    close_openrelife_window()
     sys.exit(0)
 
 def main():
@@ -170,10 +170,10 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     
     print("=" * 50)
-    print("🎯 OpenRecall Global Hotkey Listener")
+    print("🎯 OpenReLife Global Hotkey Listener")
     print("=" * 50)
-    print(f"⌨️  Cmd+Shift+Space: Open/Focus OpenRecall")
-    print(f"⎋  ESC: Close OpenRecall window")
+    print(f"⌨️  Cmd+Shift+Space: Open/Focus OpenReLife")
+    print(f"⎋  ESC: Close OpenReLife window")
     print(f"⌃  Ctrl+C: Quit listener")
     print("=" * 50)
     print("👂 Listening for hotkeys...")
@@ -188,5 +188,5 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\n👋 Goodbye!")
-        close_openrecall_window()
+        close_openrelife_window()
         sys.exit(0)

@@ -1,7 +1,7 @@
 {
-  "name": "openrecall",
+  "name": "openrelife",
   "version": "1.0.0",
-  "description": "OpenRecall - Screen Memory for macOS",
+  "description": "OpenReLife - Screen Memory for macOS",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -10,12 +10,12 @@
     "pack": "electron-builder --dir"
   },
   "keywords": [
-    "openrecall",
+    "openrelife",
     "screen",
     "memory",
     "ocr"
   ],
-  "author": "OpenRecall",
+  "author": "OpenReLife",
   "license": "MIT",
   "devDependencies": {
     "canvas": "^3.2.0",
@@ -23,8 +23,8 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.openrecall.app",
-    "productName": "OpenRecall",
+    "appId": "com.openrelife.app",
+    "productName": "OpenReLife",
     "mac": {
       "category": "public.app-category.productivity",
       "target": [

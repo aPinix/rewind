@@ -6,11 +6,11 @@ import mss
 import numpy as np
 from PIL import Image
 
-from openrecall.config import screenshots_path, args
-from openrecall.database import insert_entry
-from openrecall.nlp import get_embedding
-from openrecall.ocr import extract_text_from_image
-from openrecall.utils import (
+from openrelife.config import screenshots_path, args
+from openrelife.database import insert_entry
+from openrelife.nlp import get_embedding
+from openrelife.ocr import extract_text_from_image
+from openrelife.utils import (
     get_active_app_name,
     get_active_window_title,
     is_user_active,
@@ -113,9 +113,9 @@ def record_screenshots_thread():
     last_screenshots = take_screenshots()
 
     while True:
-        # Avoid recording the recorder (OpenRecall itself)
+        # Avoid recording the recorder (OpenReLife itself)
         active_title = get_active_window_title()
-        if active_title and "OpenRecall" in active_title:
+        if active_title and "OpenReLife" in active_title:
             time.sleep(1)
             continue
 

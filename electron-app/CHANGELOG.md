@@ -5,7 +5,7 @@
 ### 🎯 Nuove Funzionalità
 - **Icona Tray**: App vive nella barra menu (tray), non più nel Dock
 - **Menu Tray**: Click destro per menu con "Show", "About", "Quit"
-- **Click Icona**: Click sull'icona tray apre OpenRecall
+- **Click Icona**: Click sull'icona tray apre OpenReLife
 
 ### 🐛 Bug Fix
 - **ESC Fix**: Risolto bug dove servivano 2x ESC per chiudere

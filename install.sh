@@ -1,12 +1,12 @@
 #!/bin/bash
-# OpenRecall Quick Install & Setup
+# OpenReLife Quick Install & Setup
 
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "╔════════════════════════════════════════════════╗"
-echo "║      🚀 OpenRecall Installation & Setup       ║"
+echo "║      🚀 OpenReLife Installation & Setup       ║"
 echo "╚════════════════════════════════════════════════╝"
 echo ""
 
@@ -46,20 +46,20 @@ echo "🎯 Quick Start:"
 echo ""
 echo "   Option 1: Launch from app"
 echo "   • Open Spotlight (Cmd+Space)"
-echo "   • Type 'OpenRecall' and press Enter"
+echo "   • Type 'OpenReLife' and press Enter"
 echo ""
 echo "   Option 2: Launch from terminal"
 echo "   • cd $SCRIPT_DIR"
-echo "   • ./start_openrecall.sh"
+echo "   • ./start_openrelife.sh"
 echo ""
 echo "⌨️  Usage:"
-echo "   • Cmd+Shift+Space: Open OpenRecall"
+echo "   • Cmd+Shift+Space: Open OpenReLife"
 echo "   • ESC: Close window"
 echo ""
 echo "🛑 Management:"
-echo "   • Stop:    ./start_openrecall.sh stop"
-echo "   • Status:  ./start_openrecall.sh status"
-echo "   • Restart: ./start_openrecall.sh restart"
+echo "   • Stop:    ./start_openrelife.sh stop"
+echo "   • Status:  ./start_openrelife.sh status"
+echo "   • Restart: ./start_openrelife.sh restart"
 echo ""
 echo "⚠️  Important: Grant Accessibility Permissions"
 echo "   System Settings > Privacy & Security > Accessibility"

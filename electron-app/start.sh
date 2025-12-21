@@ -1,5 +1,5 @@
 #!/bin/bash
-# OpenRecall Electron Launcher
+# OpenReLife Electron Launcher
 # Starts both the Python backend and Electron frontend
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -7,7 +7,7 @@ BACKEND_DIR="$DIR/.."
 LOG_DIR="$DIR/../logs"
 mkdir -p "$LOG_DIR"
 
-BACKEND_LOG="$LOG_DIR/openrecall-backend.log"
+BACKEND_LOG="$LOG_DIR/openrelife-backend.log"
 BACKEND_PID_FILE="$LOG_DIR/backend.pid"
 
 # Function to check if backend is running
@@ -23,12 +23,12 @@ stop_backend() {
     echo "🛑 Stopping backend..."
     
     # Kill Python processes
-    ps aux | grep -i "[p]ython.*openrecall" | awk '{print $2}' | while read pid; do
+    ps aux | grep -i "[p]ython.*openrelife" | awk '{print $2}' | while read pid; do
         kill -9 $pid 2>/dev/null
     done
     
     # Kill uv processes
-    ps aux | grep -i "[u]v run.*openrecall" | awk '{print $2}' | while read pid; do
+    ps aux | grep -i "[u]v run.*openrelife" | awk '{print $2}' | while read pid; do
         kill -9 $pid 2>/dev/null
     done
     
@@ -44,9 +44,9 @@ start_backend() {
         return 0
     fi
     
-    echo "🚀 Starting OpenRecall backend..."
+    echo "🚀 Starting OpenReLife backend..."
     cd "$BACKEND_DIR"
-    nohup uv run -m openrecall.app > "$BACKEND_LOG" 2>&1 &
+    nohup uv run -m openrelife.app > "$BACKEND_LOG" 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > "$BACKEND_PID_FILE"
     

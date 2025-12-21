@@ -4,7 +4,7 @@ import numpy as np
 import json
 from typing import Any, List, Optional, Tuple
 
-from openrecall.config import db_path
+from openrelife.config import db_path
 
 # Define the structure of a database entry using namedtuple
 Entry = namedtuple("Entry", ["id", "app", "title", "text", "timestamp", "embedding", "words_coords", "ai_text", "ai_words_coords"])

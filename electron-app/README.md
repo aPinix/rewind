@@ -1,4 +1,4 @@
-# OpenRecall Electron App
+# OpenReLife Electron App
 
 App Electron nativa per macOS che sostituisce Chrome, evitando popup indesiderati.
 
@@ -18,15 +18,15 @@ Questo script:
 
 ## ⌨️ Shortcuts
 
-- **Cmd+Shift+Space**: Apri/Mostra OpenRecall
+- **Cmd+Shift+Space**: Apri/Mostra OpenReLife
 - **ESC**: Nascondi la finestra (funziona anche da fullscreen!)
 - **Cmd+Q**: Esci completamente
-- **Click su icona tray**: Apri OpenRecall
+- **Click su icona tray**: Apri OpenReLife
 
 ## 🎯 Icona Tray
 
 L'app vive nella barra menu in alto (tray). Clicca sull'icona per:
-- Aprire OpenRecall
+- Aprire OpenReLife
 - Vedere il menu (About, Quit)
 
 Non cercare l'app nel Dock - è solo nella tray! 📍
@@ -53,7 +53,7 @@ Questo genera un'app in `dist/` che puoi trascinare in `/Applications`.
 ### Solo Backend
 ```bash
 cd ..
-./start_openrecall.sh start
+./start_openrelife.sh start
 ```
 
 ### Solo Electron (backend già avviato)
@@ -67,7 +67,7 @@ npm start
 ./start.sh stop
 # oppure
 cd ..
-./start_openrecall.sh stop
+./start_openrelife.sh stop
 ```
 
 ## ✨ Vantaggi vs Chrome
@@ -90,7 +90,7 @@ cd ..
 ### Backend non parte
 ```bash
 cd ..
-cat logs/openrecall-backend.log
+cat logs/openrelife-backend.log
 ```
 
 ### Electron non trova il backend

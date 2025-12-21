@@ -84,15 +84,15 @@ function createTray() {
   
   const contextMenu = Menu.buildFromTemplate([
     { 
-      label: 'Show OpenRecall', 
+      label: 'Show OpenReLife', 
       click: () => showWindow(),
       accelerator: 'CommandOrControl+Shift+Space'
     },
     { type: 'separator' },
     { 
-      label: 'About OpenRecall',
+      label: 'About OpenReLife',
       click: () => {
-        console.log('OpenRecall v1.0.0 - Screen Memory for macOS');
+        console.log('OpenReLife v1.0.0 - Screen Memory for macOS');
       }
     },
     { type: 'separator' },
@@ -106,7 +106,7 @@ function createTray() {
     }
   ]);
   
-  tray.setToolTip('OpenRecall - Cmd+Shift+Space to open');
+  tray.setToolTip('OpenReLife - Cmd+Shift+Space to open');
   tray.setContextMenu(contextMenu);
 }
 
@@ -139,10 +139,10 @@ app.whenReady().then(() => {
   });
 
   console.log('='.repeat(50));
-  console.log('🎯 OpenRecall Electron App');
+  console.log('🎯 OpenReLife Electron App');
   console.log('='.repeat(50));
-  console.log('⌨️  Cmd+Shift+Space: Open/Focus OpenRecall');
-  console.log('⎋  ESC: Close OpenRecall window');
+  console.log('⌨️  Cmd+Shift+Space: Open/Focus OpenReLife');
+  console.log('⎋  ESC: Close OpenReLife window');
   console.log('📍 Tray icon: Click to open');
   console.log('='.repeat(50));
 
