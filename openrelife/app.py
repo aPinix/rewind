@@ -451,6 +451,13 @@ def timeline_v2():
     .result-card img { width: 100%; height: 120px; object-fit: cover; }
     .result-time { padding: 8px 12px; font-size: 11px; color: rgba(255,255,255,0.6); text-align: center; }
     
+    .clear-icon {
+      position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+      color: rgba(255,255,255,0.6); cursor: pointer; pointer-events: auto; z-index: 10;
+      font-size: 16px;
+    }
+    .clear-icon:hover { color: #fff; }
+    
     /* Screenshot area */
     .screenshot-area {
       position: absolute;
@@ -890,7 +897,8 @@ def timeline_v2():
     <div class="search-container">
       <div class="search-wrapper">
         <input type="text" class="search-input" id="searchInput" placeholder="Search your history...">
-        <i class="bi bi-search search-icon"></i>
+        <i class="bi bi-search search-icon" id="searchIcon"></i>
+        <i class="bi bi-x-circle-fill clear-icon" id="searchClear" style="display: none;"></i>
       </div>
     </div>
     
@@ -1319,10 +1327,22 @@ def timeline_v2():
       navigator.clipboard.writeText(text).then(() => alert('Copied!'));
     }
     
+    const searchIcon = document.getElementById('searchIcon');
+    const searchClear = document.getElementById('searchClear');
+
     // Search
     searchInput.addEventListener('input', () => {
       clearTimeout(searchTimeout);
       const q = searchInput.value.trim();
+      
+      // Toggle icons
+      if (searchInput.value.length > 0) {
+        searchIcon.style.display = 'none';
+        searchClear.style.display = 'block';
+      } else {
+        searchIcon.style.display = 'block';
+        searchClear.style.display = 'none';
+      }
       
       if (!q) {
         searchResults.classList.remove('show');
@@ -1330,6 +1350,12 @@ def timeline_v2():
       }
       
       searchTimeout = setTimeout(() => performSearch(q), 300);
+    });
+
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      searchInput.dispatchEvent(new Event('input'));
+      searchInput.focus();
     });
     
     async function performSearch(q) {
