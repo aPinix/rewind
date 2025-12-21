@@ -544,7 +544,10 @@ def timeline_v2():
     }
     .btn-delete-cancel:hover { color: #fff; text-decoration: underline; }
     .delete-info { font-size: 11px; color: #ff6b6b; margin-top: 4px; }
+    .delete-info { font-size: 11px; color: #ff6b6b; margin-top: 4px; }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .spin-anim { animation: spin 1s linear infinite; display: inline-block; }
     .timeline-date {
       font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.85); letter-spacing: 0.3px;
     }
@@ -915,7 +918,7 @@ def timeline_v2():
                min="0" max="{{timestamps|length - 1}}" value="{{timestamps|length - 1}}">
                
         <div class="delete-controls" id="deleteControls" style="display: none;">
-           <button class="btn-delete-confirm" onclick="confirmDelete()">
+           <button class="btn-delete-confirm" id="btnConfirmDelete" onclick="confirmDelete()">
              <i class="bi bi-trash-fill"></i> Elimina selezione
            </button>
            <div class="delete-info" id="deleteInfo">1 screenshot</div>
@@ -1036,6 +1039,13 @@ def timeline_v2():
     async function confirmDelete() {
       if (!confirm('Are you sure you want to delete these screenshots?')) return;
       
+      const btn = document.getElementById('btnConfirmDelete');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+      btn.style.cursor = 'not-allowed';
+      btn.innerHTML = '<i class="bi bi-arrow-repeat spin-anim"></i> Deleting...';
+      
       const start = Math.min(deleteStartIndex, deleteEndIndex);
       const end = Math.max(deleteStartIndex, deleteEndIndex);
       const toDelete = timestamps.slice(start, end + 1);
@@ -1054,6 +1064,10 @@ def timeline_v2():
         window.location.reload();
       } catch (e) {
         alert('Error deleting: ' + e);
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.innerHTML = originalText;
       }
     }
 
