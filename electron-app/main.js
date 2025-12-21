@@ -86,15 +86,21 @@ function hideWindow() {
 }
 
 
-async function checkRecordingStatus() {
+async function checkRecordingStatus(retryCount = 0) {
   try {
     const res = await fetch(`${OPENRECALL_URL}/api/recording-status`);
+    if (!res.ok) throw new Error('Status check failed');
     const data = await res.json();
     isPaused = data.paused;
     updateTrayMenu();
     handlePauseReminder(isPaused);
   } catch (err) {
-    console.error('Failed to check recording status:', err);
+    if (retryCount < 10) {
+        // Backend might be starting up, retry in 1s
+        setTimeout(() => checkRecordingStatus(retryCount + 1), 1000);
+    } else {
+        console.error('Failed to check recording status after retries:', err);
+    }
   }
 }
 
@@ -234,7 +240,13 @@ function startBackend() {
   });
 
   pythonProcess.stderr.on('data', (data) => {
-    console.error(`Backend Error: ${data}`);
+    // Werkzeug logs to stderr by default, treat as info
+    const str = data.toString();
+    if (str.includes('Error:') || str.includes('Exception:') || str.includes('Traceback')) {
+        console.error(`Backend Error: ${str}`);
+    } else {
+        console.log(`Backend Log: ${str}`); 
+    }
   });
 
   pythonProcess.on('close', (code) => {
