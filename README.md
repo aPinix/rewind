@@ -88,6 +88,8 @@ You can drag this file to your **Applications** folder.
 1. Open Spotlight / Raycast (**Cmd+Space**) or Launchpad and type **OpenReLife**.
 2. You will be prompted to grant **Screen Recording** permission in System Settings (if not, please do it manually from System Settings -> Privacy & Security -> Screen Recording -> +). This is required to capture screenshots.
 
+note: consider that the first run can take a while, and should ask recording permission as well; so, using the hotkeys could lead to a total black page for up to 30 seconds (on a Macbook Pro M1 with MacOS Tahoe 26.2). If the black page persists, the backend has not started, you can check it opening http://localhost:8082 in a web browser - if the port 8082 is available, it should not happen. Please open an issue if you experience this.
+
 ### Technical details
 
 The app for now is a Flask backend with a Electron frontend. The backend is responsible for capturing screenshots, processing them, storing them in a database, and providing an API for the frontend to interact with. The frontend is responsible for displaying the UI and interacting with the backend. 
