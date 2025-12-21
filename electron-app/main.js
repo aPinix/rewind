@@ -166,6 +166,15 @@ function updateTrayMenu() {
       click: () => showWindow(),
       accelerator: 'CommandOrControl+Shift+Space'
     },
+    { 
+      label: 'Settings', 
+      click: () => {
+        showWindow();
+        if (mainWindow) {
+            mainWindow.webContents.send('open-settings');
+        }
+      }
+    },
     { type: 'separator' },
     { 
       label: 'About OpenReLife',
@@ -174,7 +183,7 @@ function updateTrayMenu() {
           type: 'info',
           title: 'About OpenReLife',
           message: 'OpenReLife v1.0.0',
-          detail: 'Screen Memory for macOS - made with ❤️ by Porech (powered by AI)',
+          detail: 'Screen Memory (powered by AI) - made with ❤️ by Porech - https://github.com/porech/openrelife',
           buttons: ['OK'],
           icon: path.join(__dirname, 'app-icon.png')
         });

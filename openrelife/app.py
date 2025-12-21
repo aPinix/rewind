@@ -600,6 +600,36 @@ def timeline_v2():
       padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);
       display: flex; justify-content: flex-end; gap: 12px;
     }
+
+    /* Settings Modal */
+    .settings-modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px);
+      z-index: 2000; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease; display: flex; align-items: center; justify-content: center;
+    }
+    .settings-modal-overlay.show { opacity: 1; pointer-events: auto; }
+    
+    .settings-modal {
+      background: #1e1e1e; width: 500px; max-width: 90%;
+      border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5); transform: translateY(20px);
+      transition: transform 0.3s ease; display: flex; flex-direction: column;
+    }
+    .settings-modal-overlay.show .settings-modal { transform: translateY(0); }
+    
+    .settings-modal-header {
+      padding: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .settings-modal-header h2 { font-size: 20px; font-weight: 600; margin: 0; }
+    
+    .settings-modal-body { padding: 20px; }
+    
+    .settings-modal-footer {
+      padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex; justify-content: flex-end; gap: 10px;
+    }
     .btn {
       padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
       font-size: 14px; transition: all 0.2s;
@@ -993,6 +1023,9 @@ def timeline_v2():
             <i class="bi bi-three-dots-vertical"></i>
           </div>
           <div class="timeline-menu" id="timelineMenu">
+             <div class="timeline-menu-item" onclick="openSettings()">
+               <i class="bi bi-gear"></i> Settings
+             </div>
              <div class="timeline-menu-item danger" onclick="enterDeleteMode()">
                <i class="bi bi-trash"></i> Cancella
              </div>
@@ -1009,6 +1042,36 @@ def timeline_v2():
            <div class="delete-info" id="deleteInfo">1 screenshot</div>
            <button class="btn-delete-cancel" onclick="exitDeleteMode()">Annulla</button>
         </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Settings Modal -->
+  <div class="settings-modal-overlay" id="settingsModalOverlay" onclick="if(event.target===this) closeSettings()">
+    <div class="settings-modal">
+      <div class="settings-modal-header">
+        <h2>Settings</h2>
+        <button class="close-btn" onclick="closeSettings()">&times;</button>
+      </div>
+      <div class="settings-modal-body">
+        <div class="form-group">
+          <label>Screenshot Retention</label>
+          <select id="retentionSelect" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+            <option value="-1">Keep Forever (Default)</option>
+            <option value="7">7 Days</option>
+            <option value="30">30 Days</option>
+            <option value="90">90 Days</option>
+            <option value="365">1 Year</option>
+          </select>
+          <small class="form-text text-muted" style="margin-top: 8px;">
+            Screenshots older than this period will be automatically deleted daily.
+            <br><span style="color: #ffc107;"><i class="bi bi-exclamation-triangle"></i> Changing this will permanently delete old data.</span>
+          </small>
+        </div>
+      </div>
+      <div class="settings-modal-footer">
+        <button class="btn btn-secondary" onclick="closeSettings()">Close</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
       </div>
     </div>
   </div>
@@ -1624,6 +1687,42 @@ def timeline_v2():
     
 
     
+
+    // Settings Logic
+    function openSettings() {
+        document.getElementById('settingsModalOverlay').classList.add('show');
+        // Load current
+        fetch('/api/settings/retention')
+            .then(r => r.json())
+            .then(data => {
+                const sel = document.getElementById('retentionSelect');
+                sel.value = data.days;
+            });
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsModalOverlay').classList.remove('show');
+    }
+
+    function saveSettings() {
+        const days = document.getElementById('retentionSelect').value;
+        fetch('/api/settings/retention', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({days: days})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                showToast('Settings saved successfully! Cleanup started.', 'success');
+                closeSettings();
+            } else {
+                showToast('Error saving settings', 'error');
+            }
+        });
+    }
+
+    
     // Calendar Logic
     let calendarDate = new Date();
     // Pre-process active days for faster lookup
@@ -1747,6 +1846,9 @@ def timeline_v2():
 
     // Electron UI Reset
     if (window.electronAPI) {
+      window.electronAPI.onOpenSettings(() => {
+          openSettings();
+      });
       window.electronAPI.onResetUI(() => {
         // Close sidebar
         const sidebar = document.getElementById('sidebar');
