@@ -192,3 +192,27 @@ def insert_entry(
         # More specific error handling can be added (e.g., IntegrityError for UNIQUE constraint)
         print(f"Database error during insertion: {e}")
     return last_row_id
+
+
+def delete_entries(timestamps: List[int]) -> int:
+    """
+    Deletes entries with the specified timestamps from the database.
+    
+    Args:
+        timestamps (List[int]): List of timestamps to delete.
+        
+    Returns:
+        int: Number of deleted entries.
+    """
+    deleted_count = 0
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            placeholders = ','.join('?' * len(timestamps))
+            sql = f"DELETE FROM entries WHERE timestamp IN ({placeholders})"
+            cursor.execute(sql, timestamps)
+            conn.commit()
+            deleted_count = cursor.rowcount
+    except sqlite3.Error as e:
+        print(f"Database error during deletion: {e}")
+    return deleted_count

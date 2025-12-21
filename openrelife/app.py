@@ -8,7 +8,7 @@ from jinja2 import BaseLoader
 from PIL import Image
 
 from openrelife.config import appdata_folder, screenshots_path
-from openrelife.database import create_db, get_all_entries, get_timestamps, update_ai_ocr
+from openrelife.database import create_db, get_all_entries, get_timestamps, update_ai_ocr, delete_entries
 from openrelife.nlp import cosine_similarity, get_embedding
 from openrelife.screenshot import record_screenshots_thread
 from openrelife.utils import human_readable_time, timestamp_to_human_readable
@@ -496,8 +496,55 @@ def timeline_v2():
       background: rgba(20,20,20,0.75); backdrop-filter: blur(30px); border-radius: 32px;
       padding: 16px 32px; border: 1px solid rgba(255,255,255,0.12);
       box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column;
-      align-items: center; gap: 12px; min-width: 400px;
+      align-items: center; gap: 12px; min-width: 400px; transition: all 0.3s ease;
+      position: relative;
     }
+    .timeline-pill.delete-mode {
+      box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.5), 0 10px 40px rgba(220, 53, 69, 0.3);
+      border-color: rgba(220, 53, 69, 0.3);
+    }
+    .timeline-header {
+      width: 100%; display: flex; justify-content: center; align-items: center; position: relative;
+    }
+    .timeline-menu-btn {
+      position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
+      color: rgba(255,255,255,0.4); cursor: pointer; padding: 8px; border-radius: 50%;
+      transition: all 0.2s;
+    }
+    .timeline-menu-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .timeline-menu {
+      position: absolute; bottom: 100%; right: -20px; margin-bottom: 10px;
+      background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 4px; display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 1001; min-width: 140px;
+    }
+    .timeline-menu.show { display: block; }
+    .timeline-menu-item {
+      padding: 8px 12px; font-size: 13px; color: rgba(255,255,255,0.9);
+      cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 8px;
+    }
+    .timeline-menu-item:hover { background: rgba(255,255,255,0.1); }
+    .timeline-menu-item.danger { color: #ff6b6b; }
+    .timeline-menu-item.danger:hover { background: rgba(220, 53, 69, 0.1); }
+    
+    .delete-controls {
+      width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;
+      margin-top: 4px; animation: slideDown 0.3s ease;
+    }
+    .btn-delete-confirm {
+      background: #dc3545; color: white; border: none; padding: 8px 16px;
+      border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+    }
+    .btn-delete-confirm:hover { background: #bd2130; transform: scale(1.05); }
+    .btn-delete-cancel {
+      background: none; border: none; color: rgba(255,255,255,0.5);
+      font-size: 12px; cursor: pointer; margin-top: 4px;
+    }
+    .btn-delete-cancel:hover { color: #fff; text-decoration: underline; }
+    .delete-info { font-size: 11px; color: #ff6b6b; margin-top: 4px; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     .timeline-date {
       font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.85); letter-spacing: 0.3px;
     }
@@ -851,10 +898,29 @@ def timeline_v2():
     
     <!-- Timeline -->
     <div class="timeline">
-      <div class="timeline-pill">
-        <div class="timeline-date" id="timelineDate">{{timestamps[0] | timestamp_to_human_readable}}</div>
+      <div class="timeline-pill" id="timelinePill">
+        <div class="timeline-header">
+          <div class="timeline-date" id="timelineDate">{{timestamps[0] | timestamp_to_human_readable}}</div>
+          <div class="timeline-menu-btn" onclick="toggleTimelineMenu(event)">
+            <i class="bi bi-three-dots-vertical"></i>
+          </div>
+          <div class="timeline-menu" id="timelineMenu">
+             <div class="timeline-menu-item danger" onclick="enterDeleteMode()">
+               <i class="bi bi-trash"></i> Cancella
+             </div>
+          </div>
+        </div>
+        
         <input type="range" class="timeline-slider" id="timelineSlider" 
                min="0" max="{{timestamps|length - 1}}" value="{{timestamps|length - 1}}">
+               
+        <div class="delete-controls" id="deleteControls" style="display: none;">
+           <button class="btn-delete-confirm" onclick="confirmDelete()">
+             <i class="bi bi-trash-fill"></i> Elimina selezione
+           </button>
+           <div class="delete-info" id="deleteInfo">1 screenshot</div>
+           <button class="btn-delete-cancel" onclick="exitDeleteMode()">Annulla</button>
+        </div>
       </div>
     </div>
   </div>
@@ -925,6 +991,71 @@ def timeline_v2():
     
     let currentEntry = null;
     let searchTimeout = null;
+    
+    // Deletion mode
+    let isDeleteMode = false;
+    let deleteStartIndex = -1;
+    let deleteEndIndex = -1;
+    
+    function toggleTimelineMenu(e) {
+      e.stopPropagation();
+      const menu = document.getElementById('timelineMenu');
+      menu.classList.toggle('show');
+    }
+    
+    document.addEventListener('click', () => {
+      document.getElementById('timelineMenu').classList.remove('show');
+    });
+    
+    function enterDeleteMode() {
+      isDeleteMode = true;
+      document.getElementById('timelinePill').classList.add('delete-mode');
+      document.getElementById('deleteControls').style.display = 'flex';
+      document.getElementById('timelineMenu').classList.remove('show');
+      
+      const currentIdx = timestamps.length - 1 - parseInt(slider.value);
+      deleteStartIndex = currentIdx;
+      deleteEndIndex = currentIdx;
+      updateDeleteInfo();
+    }
+    
+    function exitDeleteMode() {
+      isDeleteMode = false;
+      document.getElementById('timelinePill').classList.remove('delete-mode');
+      document.getElementById('deleteControls').style.display = 'none';
+      deleteStartIndex = -1;
+      deleteEndIndex = -1;
+    }
+    
+    function updateDeleteInfo() {
+      if (!isDeleteMode) return;
+      const count = Math.abs(deleteEndIndex - deleteStartIndex) + 1;
+      document.getElementById('deleteInfo').textContent = `${count} screenshot${count > 1 ? 's' : ''} to delete`;
+    }
+    
+    async function confirmDelete() {
+      if (!confirm('Are you sure you want to delete these screenshots?')) return;
+      
+      const start = Math.min(deleteStartIndex, deleteEndIndex);
+      const end = Math.max(deleteStartIndex, deleteEndIndex);
+      const toDelete = timestamps.slice(start, end + 1);
+      
+      try {
+        const res = await fetch('/api/delete', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({timestamps: toDelete})
+        });
+        const data = await res.json();
+        
+        // Remove from local arrays
+        timestamps = timestamps.filter(t => !toDelete.includes(t));
+        // Reload page to refresh state cleanly
+        window.location.reload();
+      } catch (e) {
+        alert('Error deleting: ' + e);
+      }
+    }
 
     // Smart Sync Logic
     let syncInterval = null;
@@ -980,6 +1111,12 @@ def timeline_v2():
     // Slider
     slider.addEventListener('input', () => {
       const idx = timestamps.length - 1 - parseInt(slider.value);
+      
+      if (isDeleteMode) {
+        deleteEndIndex = idx;
+        updateDeleteInfo();
+      }
+      
       updateDisplay(timestamps[idx]);
     });
     
@@ -1451,6 +1588,27 @@ def api_sync():
         'timestamps': new_timestamps,
         'entries': new_entries_dict
     })
+
+
+@app.route("/api/delete", methods=["POST"])
+def api_delete():
+    data = request.json
+    timestamps = data.get("timestamps", [])
+    if not timestamps:
+        return jsonify({"error": "No timestamps provided"}), 400
+    
+    count = delete_entries(timestamps)
+    
+    # Also delete screenshots from disk
+    for ts in timestamps:
+        try:
+            file_path = os.path.join(screenshots_path, f"{ts}.webp")
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print(f"Error removing file {ts}.webp: {e}")
+            
+    return jsonify({"deleted": count})
 
 
 @app.route("/classic")
