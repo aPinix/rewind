@@ -162,6 +162,9 @@ base_template = """
       object-fit: contain;
       border-radius: 8px;
       box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-user-drag: none;
     }
     
     /* Text overlay icons */
@@ -474,6 +477,9 @@ def timeline_v2():
       object-fit: contain; 
       border-radius: 8px;
       box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-user-drag: none;
     }
     .text-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
     
