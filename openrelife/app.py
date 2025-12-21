@@ -1383,8 +1383,8 @@ def timeline_v2():
       if (idx !== -1) {
         slider.value = timestamps.length - 1 - idx;
         updateDisplay(ts);
-        searchResults.classList.remove('show');
         searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input'));
       }
     }
     
