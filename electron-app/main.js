@@ -7,6 +7,12 @@ let tray = null;
 let isPaused = false;
 let pauseReminderInterval = null;
 
+
+// Set explicit app name for notifications
+if (process.platform === 'darwin') {
+  app.setName('OpenReLife');
+}
+
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
@@ -50,7 +56,7 @@ function createWindow() {
       }
     }, 1000);
   });
-}
+} 
 
 function showWindow() {
   if (mainWindow === null) {
@@ -109,7 +115,9 @@ function handlePauseReminder(paused) {
         const notification = new Notification({
           title: 'OpenReLife Paused',
           body: 'Recording is currently paused. Resume to capture your history.',
-          silent: false
+          silent: false,
+          urgency: 'critical', // Attempt to make it more visible
+          hasReply: false
         });
         
         notification.on('click', () => {
