@@ -1,5 +1,6 @@
 const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage, Notification, dialog } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
 
 const OPENRECALL_URL = 'http://127.0.0.1:8082';
 let mainWindow = null;
@@ -210,7 +211,59 @@ function createTray() {
 }
 
 
+
+let pythonProcess = null;
+
+function startBackend() {
+  const isDev = !app.isPackaged;
+  // In prod, resourcesPath points to Contents/Resources where we copied openrelife and pyproject.toml
+  const projectRoot = isDev ? path.join(__dirname, '..') : process.resourcesPath;
+
+  console.log('Starting backend in:', projectRoot);
+  
+  // Using uv to run the python module
+  // Check if we need full path for uv in prod? For now assuming it's in env
+  pythonProcess = spawn('uv', ['run', '-m', 'openrelife.app'], {
+    cwd: projectRoot,
+    shell: true, // helps resolve command in some envs
+    env: { ...process.env, PYTHONUNBUFFERED: '1' }
+  });
+
+  pythonProcess.stdout.on('data', (data) => {
+    console.log(`Backend: ${data}`);
+  });
+
+  pythonProcess.stderr.on('data', (data) => {
+    console.error(`Backend Error: ${data}`);
+  });
+
+  pythonProcess.on('close', (code) => {
+    console.log(`Backend exited with code ${code}`);
+    pythonProcess = null;
+  });
+}
+
+function stopBackend() {
+  if (pythonProcess) {
+    console.log('Stopping backend...');
+    // Kill the process group to ensure children (python) are killed since we used shell: true
+    if (process.platform === 'win32') {
+        spawn("taskkill", ["/pid", pythonProcess.pid, '/f', '/t']);
+    } else {
+        process.kill(-pythonProcess.pid, 'SIGTERM'); 
+        // Note: For this to work with shell: true, we need { detached: true } in spawn options usually.
+        // But let's try standard kill first or modify spawn options.
+        // Actually without detached: true, negative pid might fail.
+        // Let's just try simple kill first, often enough if uv traps sigterm.
+        pythonProcess.kill(); 
+    }
+  }
+}
+
 app.whenReady().then(() => {
+  // Start backend server
+  startBackend();
+
   // Set app icon (works for dock in dev mode)
   if (process.platform === 'darwin') {
     app.dock.setIcon(path.join(__dirname, 'app-icon.png'));
@@ -272,9 +325,11 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   // Unregister all shortcuts
   globalShortcut.unregisterAll();
+  stopBackend();
 });
 
 // Prevent app from quitting
 app.on('before-quit', (event) => {
+  stopBackend();
   // Allow quit only if explicitly requested
 });

@@ -41,6 +41,16 @@
       "gatekeeperAssess": false,
       "icon": "app-icon.png"
     },
+    "extraResources": [
+      {
+        "from": "../openrelife",
+        "to": "openrelife"
+      },
+      {
+        "from": "../pyproject.toml",
+        "to": "pyproject.toml"
+      }
+    ],
     "files": [
       "main.js",
       "preload.js",

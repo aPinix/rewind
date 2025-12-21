@@ -77,9 +77,9 @@ case "$1" in
 esac
 
 # Start backend
-if ! start_backend; then
-    exit 1
-fi
+#if ! start_backend; then
+#    exit 1
+#fi
 
 # Start Electron
 echo ""
