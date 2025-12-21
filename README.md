@@ -54,6 +54,10 @@ The software is currently in active development (with a huge help from AI agents
 You can directly download the latest release from [GitHub releases](https://github.com/openrelife/openrelife/releases); as per now, the app needs external dependencies to work, so please follow the manual installation instructions to get started.
 In the near future, this will (hopefully) change.
 
+### Backend Arguments (from OpenRecall)
+--storage-path (default: user data path for your OS): allows you to specify the path where the screenshots and database should be stored. We recommend creating an encrypted volume to store your data.
+
+--primary-monitor-only (default: False): only record the primary monitor (rather than individual screenshots for other monitors)
 
 ### Manual Installation 
 We provide a helper script to set up the environment and build the application on MacOS:
@@ -83,6 +87,14 @@ You can drag this file to your **Applications** folder.
 **On first launch:**
 1. Open Spotlight / Raycast (**Cmd+Space**) or Launchpad and type **OpenReLife**.
 2. You will be prompted to grant **Screen Recording** permission in System Settings (if not, please do it manually from System Settings -> Privacy & Security -> Screen Recording -> +). This is required to capture screenshots.
+
+### Technical details
+
+The app for now is a Flask backend with a Electron frontend. The backend is responsible for capturing screenshots, processing them, storing them in a database, and providing an API for the frontend to interact with. The frontend is responsible for displaying the UI and interacting with the backend. 
+
+The backend is running on port 8082 (like OpenRecall, will be configurable in the future).
+
+The frontend is running as a old way full screen app that can be toggled with a global hotkey (Cmd+Shift+Space by default, will be configurable in the future) and totally overlaps your current desktop. You can exit it by pressing the escape key (ESC), exactly like in Rewind.ai.
  
 ### Key Features & Usage
  
