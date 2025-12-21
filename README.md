@@ -6,7 +6,7 @@
 \____/ .___/\___/_/ /_/_/ |_|\___/_____/_/_/  \___/ 
     /_/                                             
 ```
-_**This project is currently in active development; expect frequent updates and changes, and please report any issues you may encounter.**_
+_**This project is currently in active development and in an alpha state; expect frequent updates and changes, and please report any issues you may encounter.**_
 
 **Do you like this project?** Show your support by starring it! ⭐️ Thank you!
 
