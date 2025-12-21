@@ -1143,6 +1143,12 @@ def timeline_v2():
           if (newVal !== parseInt(slider.value)) {
             slider.value = newVal;
             const idx = timestamps.length - 1 - slider.value;
+            
+            if (isDeleteMode) {
+              deleteEndIndex = idx;
+              updateDeleteInfo();
+            }
+
             const ts = timestamps[idx];
             
             if (!isScrolling) isScrolling = true;
@@ -1174,6 +1180,12 @@ def timeline_v2():
         if (newVal !== parseInt(slider.value)) {
           slider.value = newVal;
           const idx = timestamps.length - 1 - slider.value;
+          
+          if (isDeleteMode) {
+            deleteEndIndex = idx;
+            updateDeleteInfo();
+          }
+          
           updateDisplay(timestamps[idx]);
         }
       } else if (e.key === 'Escape') {
