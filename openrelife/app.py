@@ -769,10 +769,59 @@ def timeline_v2():
       cursor: pointer; font-size: 18px; padding: 0; line-height: 1;
     }
     .toast-close:hover { color: #fff; }
-    @keyframes slideIn {
-      from { transform: translateX(400px); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+    /* Calendar */
+    .calendar-btn {
+      margin-left: 10px; color: rgba(255,255,255,0.4); cursor: pointer;
+      transition: all 0.2s; font-size: 16px; display: flex; align-items: center;
     }
+    .calendar-btn:hover { color: #fff; transform: scale(1.1); }
+    
+    .calendar-wrapper {
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      margin-bottom: 20px; background: rgba(30,30,30,0.98); 
+      backdrop-filter: blur(40px); border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      padding: 20px; z-index: 1002; display: none; width: 320px;
+    }
+    .calendar-wrapper.show { display: block; animation: slideUp 0.3s ease; }
+    
+    .calendar-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+    }
+    .calendar-title { font-weight: 600; font-size: 16px; color: #fff; }
+    .calendar-nav-btn {
+      background: rgba(255,255,255,0.1); border: none; color: #fff;
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .calendar-nav-btn:hover { background: rgba(255,255,255,0.2); }
+    
+    .calendar-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center;
+    }
+    .calendar-day-header {
+      font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 8px; font-weight: 500;
+    }
+    .calendar-day {
+      width: 32px; height: 32px; border-radius: 50%; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.3); position: relative;
+    }
+    .calendar-day.active {
+      color: #fff; cursor: pointer; background: rgba(255,255,255,0.05);
+    }
+    .calendar-day.active:hover { background: rgba(0,123,255,0.3); }
+    .calendar-day.has-recording::after {
+      content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 4px; background: #007bff; border-radius: 50%;
+    }
+    .calendar-day.selected {
+      background: #007bff; color: white;
+    }
+    .calendar-day.selected::after { background: white; }
+    
+    @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
     
     /* Responsive adjustments */
     @media (max-width: 768px) {
@@ -917,7 +966,29 @@ def timeline_v2():
     <div class="timeline">
       <div class="timeline-pill" id="timelinePill">
         <div class="timeline-header">
-          <div class="timeline-date" id="timelineDate">{{timestamps[0] | timestamp_to_human_readable}}</div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;">
+            <div class="timeline-date" id="timelineDate">{{timestamps[0] | timestamp_to_human_readable}}</div>
+            <div class="calendar-btn" onclick="toggleCalendar(event)" style="margin: 0;">
+              <i class="bi bi-calendar-event"></i>
+            </div>
+          </div>
+          
+          <!-- Calendar Popup -->
+          <div class="calendar-wrapper" id="calendarWrapper" onclick="event.stopPropagation()">
+            <div class="calendar-header">
+              <button class="calendar-nav-btn" onclick="prevMonth()">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <div class="calendar-title" id="calendarTitle">December 2025</div>
+              <button class="calendar-nav-btn" onclick="nextMonth()">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+              <!-- Days will be generated here -->
+            </div>
+          </div>
+
           <div class="timeline-menu-btn" onclick="toggleTimelineMenu(event)">
             <i class="bi bi-three-dots-vertical"></i>
           </div>
@@ -1551,6 +1622,121 @@ def timeline_v2():
       });
     }
     
+
+    
+    // Calendar Logic
+    let calendarDate = new Date();
+    // Pre-process active days for faster lookup
+    const activeDays = new Set();
+    const dayToTimestampMap = {}; 
+    
+    function initCalendar() {
+      // Populate active days from timestamps
+      timestamps.forEach(ts => {
+        const date = new Date(ts / 1000);
+        const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        if (!activeDays.has(key)) {
+          activeDays.add(key);
+          dayToTimestampMap[key] = ts; // Store first timestamp of the day
+        }
+      });
+      renderCalendar();
+    }
+    
+    function toggleCalendar(e) {
+      e.stopPropagation();
+      const cal = document.getElementById('calendarWrapper');
+      if (cal.classList.contains('show')) {
+        cal.classList.remove('show');
+      } else {
+        // Sync calendar to currently viewed date
+        const currentTs = timestamps[timestamps.length - 1 - parseInt(slider.value)];
+        if (currentTs) {
+          calendarDate = new Date(currentTs / 1000);
+        }
+        renderCalendar();
+        cal.classList.add('show');
+      }
+    }
+    
+    function prevMonth() {
+      calendarDate.setMonth(calendarDate.getMonth() - 1);
+      renderCalendar();
+    }
+    
+    function nextMonth() {
+      calendarDate.setMonth(calendarDate.getMonth() + 1);
+      renderCalendar();
+    }
+    
+    function renderCalendar() {
+      const year = calendarDate.getFullYear();
+      const month = calendarDate.getMonth();
+      
+      document.getElementById('calendarTitle').textContent = new Date(year, month).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      
+      const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      weekDays.forEach(day => {
+        const el = document.createElement('div');
+        el.className = 'calendar-day-header';
+        el.textContent = day;
+        grid.appendChild(el);
+      });
+      
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      
+      // Empty cells for previous month
+      for (let i = 0; i < firstDay; i++) {
+        grid.appendChild(document.createElement('div'));
+      }
+      
+      // Days
+      for (let day = 1; day <= daysInMonth; day++) {
+        const el = document.createElement('div');
+        const key = `${year}-${month}-${day}`;
+        const hasRecording = activeDays.has(key);
+        
+        let className = 'calendar-day';
+        if (hasRecording) {
+            className += ' active has-recording';
+            // Check if selected
+            const currentTs = timestamps[timestamps.length - 1 - parseInt(slider.value)];
+            const currentDate = new Date(currentTs / 1000);
+            if (currentDate.getDate() === day && currentDate.getMonth() === month && currentDate.getFullYear() === year) {
+                className += ' selected';
+            }
+        }
+        
+        el.className = className;
+        el.textContent = day;
+        
+        if (hasRecording) {
+            el.onclick = () => {
+                const targetTs = dayToTimestampMap[key];
+                goToTimestamp(targetTs);
+                document.getElementById('calendarWrapper').classList.remove('show');
+            };
+        }
+        
+        grid.appendChild(el);
+      }
+    }
+    
+    // Auto-close calendar when clicking outside
+    document.addEventListener('click', (e) => {
+        const cal = document.getElementById('calendarWrapper');
+        if (cal.classList.contains('show') && !e.target.closest('.calendar-wrapper') && !e.target.closest('.calendar-btn')) {
+            cal.classList.remove('show');
+        }
+    });
+    
+    // Init Calendar
+    initCalendar();
+    
     // Update extracted text on change
     function updateExtractedText() {
       if (currentEntry) {
@@ -1558,7 +1744,7 @@ def timeline_v2():
         document.getElementById('extractedText').textContent = text || 'No text available';
       }
     }
-    
+
     // Electron UI Reset
     if (window.electronAPI) {
       window.electronAPI.onResetUI(() => {

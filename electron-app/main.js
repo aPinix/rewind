@@ -162,6 +162,7 @@ function updateTrayMenu() {
     { 
       label: 'About OpenReLife',
       click: () => {
+        //alert('OpenReLife v1.0.0 - Screen Memory for macOS')
         console.log('OpenReLife v1.0.0 - Screen Memory for macOS');
       }
     },
