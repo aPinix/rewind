@@ -138,6 +138,12 @@ function handlePauseReminder(paused) {
 function updateTrayMenu() {
   if (!tray) return;
 
+  if (isPaused && trayIconPaused) {
+    tray.setImage(trayIconPaused);
+  } else if (trayIconNormal) {
+    tray.setImage(trayIconNormal);
+  }
+
   const contextMenu = Menu.buildFromTemplate([
     {
       label: isPaused ? 'Resume Recording' : 'Pause Recording',
@@ -172,15 +178,27 @@ function updateTrayMenu() {
   tray.setContextMenu(contextMenu);
 }
 
+
+let trayIconNormal = null;
+let trayIconPaused = null;
+
 function createTray() {
   const iconPath = path.join(__dirname, 'tray-iconTemplate.png');
-  const icon = nativeImage.createFromPath(iconPath);
-  const trayIcon = icon.resize({ width: 22 });
-  trayIcon.setTemplateImage(true);
+  const pausedIconPath = path.join(__dirname, 'tray-icon-pausedTemplate.png');
   
-  tray = new Tray(trayIcon);
+  const icon = nativeImage.createFromPath(iconPath);
+  const pausedIcon = nativeImage.createFromPath(pausedIconPath);
+  
+  trayIconNormal = icon.resize({ width: 22 });
+  trayIconNormal.setTemplateImage(true);
+  
+  trayIconPaused = pausedIcon.resize({ width: 22 });
+  trayIconPaused.setTemplateImage(true);
+  
+  tray = new Tray(trayIconNormal);
   updateTrayMenu();
 }
+
 
 app.whenReady().then(() => {
   // Create tray icon first
