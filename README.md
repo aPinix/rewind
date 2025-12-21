@@ -1,122 +1,101 @@
 ```
-   ____                   ____                  ____   
-  / __ \____  ___  ____  / __ \___  _________ _/ / /   
- / / / / __ \/ _ \/ __ \/ /_/ / _ \/ ___/ __ `/ / /    
-/ /_/ / /_/ /  __/ / / / _, _/  __/ /__/ /_/ / / /     
-\____/ .___/\___/_/ /_/_/ |_|\___/\___/\__,_/_/_/      
-    /_/                                                                                                                         
+   ____                   ____       __      ____   
+  / __ \____  ___  ____  / __ \___  / /   (_) __/__ 
+ / / / / __ \/ _ \/ __ \/ /_/ / _ \/ /   / / /_/ _ \
+/ /_/ / /_/ /  __/ / / / _, _/  __/ /___/ / __/  __/
+\____/ .___/\___/_/ /_/_/ |_|\___/_____/_/_/  \___/ 
+    /_/                                             
 ```
-**Enjoy this project?** Show your support by starring it! ⭐️ Thank you!
+_**This project is currently in active development; expect frequent updates and changes, and please report any issues you may encounter.**_
 
-Join our [Discord](https://discord.gg/RzvCYRgUkx) and/or [Telegram](https://t.me/+5DULWTesqUYwYjY0) community to stay informed of updates!
+**Do you like this project?** Show your support by starring it! ⭐️ Thank you!
 
 # Take Control of Your Digital Memory
 
-OpenReLife is a fully open-source, privacy-first alternative to proprietary solutions like Microsoft's Windows Recall or Limitless' Rewind.ai. With OpenReLife, you can easily access your digital history, enhancing your memory and productivity without compromising your privacy.
+OpenReLife is a fully open-source alternative to proprietary solutions like Microsoft's Windows Recall or Limitless' Rewind.ai, forked from [OpenRecall](https://github.com/openrecall/openrecall). With OpenReLife, you can easily access your digital history, enhancing your memory and productivity without compromising your privacy.
+
+The main goal of this project is to provide an alternative to Rewind.ai, that was recently abandoned and remotely blocked after the company was acquired by Meta; so it was created to fill the gap as quickly as possible with the best possible UX and features. 
+In future, we plan to change the codebase to enhance DX, but we are currently focused on adding the base features you loved from Rewind.ai, having the best possible experience and making the transition as smooth as possible.
 
 ## What does it do?
 
-OpenReLife captures your digital history through regularly taken snapshots, which are essentially screenshots. The text and images within these screenshots are analyzed and made searchable, allowing you to quickly find specific information by typing relevant keywords into OpenReLife. You can also manually scroll back through your history to revisit past activities.
-
-https://github.com/openrelife/openrelife/assets/16676419/cfc579cb-165b-43e4-9325-9160da6487d2
+OpenReLife captures your digital history through regularly taken screenshots. The text and images within these screenshots are analyzed and made searchable, allowing you to quickly find specific information by typing relevant keywords into OpenReLife. You can also manually scroll back through your history to revisit past activities.
 
 ## Why Choose OpenReLife?
 
 OpenReLife offers several key advantages over closed-source alternatives:
 
 - **Transparency**: OpenReLife is 100% open-source, allowing you to audit the source code for potential backdoors or privacy-invading features.
-- **Cross-platform Support**: OpenReLife works on Windows, macOS, and Linux, giving you the freedom to use it on your preferred operating system.
-- **Privacy-focused**: Your data is stored locally on your device, no internet connection or cloud is required. In addition, you have the option to encrypt the data on a removable disk for added security, read how in our [guide](docs/encryption.md) here. 
-- **Hardware Compatibility**: OpenReLife is designed to work with a [wide range of hardware](docs/hardware.md), unlike proprietary solutions that may require specific certified devices.
+- **Cross-platform Support**: OpenReLife aims to work on Windows, macOS, and Linux, giving you the freedom to use it on your preferred operating system. (macOS is currently the only tested platform)
+- **Privacy-focused**: Your data is stored locally on your device, no internet connection or cloud is required. 
+- **Smooth experience**: OpenReLife is designed to be smooth and easy to use, with a simple and intuitive interface.
 
-<p align="center">
-  <a href="https://twitter.com/elonmusk/status/1792690964672450971" target="_blank">
-    <img src="images/black_mirror.png" alt="Elon Musk Tweet" width="400">
-  </a>
-</p>
+## Status of the project
+
+The software is currently in active development (with a huge help from AI agents), it is yet working fine in all its base features (tested on Macbook Pro M1 with MacOS Tahoe 26.2).
 
 ## Features
 
-- **Time Travel**: Revisit and explore your past digital activities seamlessly across Windows, macOS, or Linux.
-- **Local-First AI**: OpenReLife harnesses the power of local AI processing to keep your data private and secure.
+- **Time Travel**: Revisit and explore your past digital activities seamlessly, scrolling around the past activities.
+- **Local-First AI**: OpenReLife harnesses the power of OpenRecall's local AI processing, with optional cloud-based AI processing for enhanced capabilities.
 - **Semantic Search**: Advanced local OCR interprets your history, providing robust semantic search capabilities.
 - **Full Control Over Storage**: Your data is stored locally, giving you complete control over its management and security.
 
-<p align="center">
-  <img src="images/lisa_rewind.webp" alt="Lisa Rewind" width="400">
-</p>
-
-
-## Comparison
-
-
-
-| Feature          | OpenReLife                    | Windows Recall                                  | Rewind.ai                              |
-|------------------|-------------------------------|--------------------------------------------------|----------------------------------------|
-| Transparency     | Open-source                   | Closed-source                                    | Closed-source                          |
-| Supported Hardware | All                         | Copilot+ certified Windows hardware              | M1/M2 Apple Silicon                    |
-| OS Support       | Windows, macOS, Linux         | Windows                                          | macOS                                  |
-| Privacy          | On-device, self-hosted        | Microsoft's privacy policy applies               | Connected to ChatGPT                   |
-| Cost             | Free                          | Part of Windows 11 (requires specialized hardware) | Monthly subscription                   |
-
-## Quick links
-- [Roadmap](https://github.com/orgs/openrelife/projects/2) and you can [vote for your favorite features](https://github.com/openrelife/openrelife/discussions/9#discussion-6775473)
-- [FAQ](https://github.com/openrelife/openrelife/wiki/FAQ)
-
 ## Get Started
-
+ 
 ### Prerequisites
-- Python 3.11
-- MacOSX/Windows/Linux
-- Git
+- macOS (Windows/Linux support needs testing)
+- [uv](https://astral.sh/uv) (for Python dependency management)
+- [Node.js](https://nodejs.org/) & npm (for building the Electron app)
+- Python 3.11+
+ 
+### Installation
 
-To install:
-```
-python3 -m pip install --upgrade --no-cache-dir git+https://github.com/openrelife/openrelife.git
-```
+You can directly download the latest release from [GitHub releases](https://github.com/openrelife/openrelife/releases); as per now, the app needs external dependencies to work, so please follow the manual installation instructions to get started.
+In the near future, this will (hopefully) change.
 
-To run:
-```
-python3 -m openrelife.app
-```
-Open your browser to:
-[http://localhost:8082](http://localhost:8082) to access OpenReLife.
 
-### 🚀 Quick Start with Global Hotkey (macOS)
-
-For a Rewind.ai-like experience with **Cmd+Shift+Space** hotkey:
-
+### Manual Installation 
+We provide a helper script to set up the environment and build the application on MacOS:
+ 
 ```bash
-# One-line install
+# Clone the repository
+git clone https://github.com/openrelife/openrelife.git
+cd openrelife
+ 
+# Run installation script
 ./install.sh
-
-# Launch the app
-./start_openrelife.sh
 ```
+ 
+This script will:
+1. Check for `uv` installation.
+2. Install Python backend dependencies.
+3. Install Electron frontend dependencies.
+4. Build the standalone macOS `.app`.
+ 
+### Running the App
+ 
+After the installation completes, the application will be available at:
+`electron-app/dist/mac-arm64/OpenReLife.app` (or `mac-x64` for Intel Macs).
+ 
+You can drag this file to your **Applications** folder.
+ 
+**On first launch:**
+1. Open Spotlight / Raycast (**Cmd+Space**) or Launchpad and type **OpenReLife**.
+2. You will be prompted to grant **Screen Recording** permission in System Settings (if not, please do it manually from System Settings -> Privacy & Security -> Screen Recording -> +). This is required to capture screenshots.
+ 
+### Key Features & Usage
+ 
+- **Global Hotkey**: Press **Cmd+Shift+Space** anytime to toggle the OpenReLife overlay.
+- **Privacy First**: All data is stored locally on your machine.
+- **Background Mode**: The app runs silently in the background; access it via the menu bar icon or hotkey.
 
-Then press **Cmd+Shift+Space** anytime to open OpenReLife in fullscreen!
-
-**Features:**
-- 🎨 Opens in Electron-like app mode (no toolbars, extensions, or bookmarks)
-- 👻 Runs silently in background (no visible terminal)
-- ⌨️ **Cmd+Shift+Space**: Open OpenReLife instantly
-- ⎋ **ESC**: Close the window (app stays running)
-
-See [HOTKEY_SETUP.md](HOTKEY_SETUP.md) for full documentation.
-
-## Arguments
-`--storage-path` (default: user data path for your OS): allows you to specify the path where the screenshots and database should be stored. We recommend [creating an encrypted volume](docs/encryption.md) to store your data.
-
-`--primary-monitor-only` (default: False): only record the primary monitor (rather than individual screenshots for other monitors)
 
 ## Uninstall instructions
 
 To uninstall OpenReLife and remove all stored data:
 
-1. Uninstall the package:
-   ```
-   python3 -m pip uninstall openrelife
-   ```
+1. Drag the OpenReLife app from your **Applications** folder to the **Trash**.
 
 2. Remove stored data:
    - On Windows:
@@ -132,16 +111,13 @@ To uninstall OpenReLife and remove all stored data:
      rm -rf ~/.local/share/openrelife
      ```
 
-Note: If you specified a custom storage path at any time using the `--storage-path` argument, make sure to remove that directory too.
+If you use AppCleaner, just drag the OpenReLife app into AppCleaner and click the button.
 
 ## Contribute
 
 As an open-source project, we welcome contributions from the community. If you'd like to help improve OpenReLife, please submit a pull request or open an issue on our GitHub repository.
 
-## Contact the maintainers
-mail@datatalk.be
-
 ## License
 
-OpenReLife is released under the [AGPLv3](https://opensource.org/licenses/AGPL-3.0), ensuring that it remains open and accessible to everyone.
+The whole source code is released under the terms of the GNU General Public License (GPL) v2. You can find a copy of the license in the LICENSE file.
 
