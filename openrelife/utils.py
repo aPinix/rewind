@@ -123,8 +123,9 @@ def get_active_window_title_osx() -> str:
         for window in window_list:
             # Check if the window belongs to the active application
             if window.get("kCGWindowOwnerName") == app_name:
-                # Check if it's a normal window (layer 0) and has a title
-                if window.get("kCGWindowLayer") == 0 and "kCGWindowName" in window:
+                # Check if it has a title
+                # We removed the kCGWindowLayer == 0 check to support fullscreen windows
+                if "kCGWindowName" in window:
                     title = window.get("kCGWindowName", "")
                     if title:  # Return the first non-empty title found
                         return title
