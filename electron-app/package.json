@@ -38,14 +38,17 @@
       ],
       "darkModeSupport": true,
       "hardenedRuntime": false,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "icon": "app-icon.png"
     },
     "files": [
       "main.js",
       "preload.js",
       "package.json",
       "tray-iconTemplate.png",
-      "tray-iconTemplate@2x.png"
+      "tray-iconTemplate@2x.png",
+      "app-icon.png",
+      "app-icon.svg"
     ],
     "directories": {
       "output": "dist",

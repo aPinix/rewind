@@ -31,7 +31,8 @@ function createWindow() {
       enableRemoteModule: false
     },
     skipTaskbar: true,
-    simpleFullscreen: true
+    simpleFullscreen: true,
+    icon: path.join(__dirname, 'app-icon.png')
   });
 
   mainWindow.loadURL(OPENRECALL_URL);
@@ -166,9 +167,9 @@ function updateTrayMenu() {
           type: 'info',
           title: 'About OpenReLife',
           message: 'OpenReLife v1.0.0',
-          detail: 'Screen Memory for macOS',
+          detail: 'Screen Memory for macOS - made with ❤️ by Porech (powered by AI)',
           buttons: ['OK'],
-          icon: path.join(__dirname, 'about-icon.png')
+          icon: path.join(__dirname, 'app-icon.png')
         });
       }
     },
@@ -210,6 +211,11 @@ function createTray() {
 
 
 app.whenReady().then(() => {
+  // Set app icon (works for dock in dev mode)
+  if (process.platform === 'darwin') {
+    app.dock.setIcon(path.join(__dirname, 'app-icon.png'));
+  }
+
   // Create tray icon first
   createTray();
   
