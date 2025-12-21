@@ -10,60 +10,53 @@ echo "║      🚀 OpenReLife Installation & Setup       ║"
 echo "╚════════════════════════════════════════════════╝"
 echo ""
 
-# Check if uv is installed
+# 1. UV Setup
+echo "🔎 Checking uv..."
 if ! command -v uv &> /dev/null; then
     echo "❌ uv is not installed"
-    echo "Install it with: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo "Please install it: curl -LsSf https://astral.sh/uv/install.sh | sh"
     exit 1
 fi
-
 echo "✅ uv found"
 
-# Install dependencies
+# 2. Install Backend Dependencies
 echo ""
-echo "📦 Installing dependencies..."
+echo "📦 Installing Backend Dependencies (via uv)..."
 cd "$SCRIPT_DIR"
-uv pip install pynput
+uv sync
 
+
+# 3. Install Frontend Dependencies (Electron)
 echo ""
-echo "✅ Dependencies installed"
+echo "� Installing Electron Dependencies..."
+cd "$SCRIPT_DIR/electron-app"
+if [ ! -d "node_modules" ]; then
+    npm install
+else
+    echo "   node_modules exists, skipping npm install (run manually if needed)"
+fi
 
-# Make scripts executable
+# 4. Build Application
 echo ""
-echo "🔧 Setting up scripts..."
-chmod +x "$SCRIPT_DIR"/*.sh "$SCRIPT_DIR"/*.py
+echo "�️  Building macOS Application..."
+# npm run build-mac executes: electron-builder --mac
+npm run build-mac
 
-echo ""
-echo "🎨 Creating macOS app..."
-"$SCRIPT_DIR/create_app.sh"
-
+# 5. Final Output
 echo ""
 echo "╔════════════════════════════════════════════════╗"
-echo "║          ✨ Installation Complete! ✨          ║"
+echo "║          ✨ Build Complete! ✨                 ║"
 echo "╚════════════════════════════════════════════════╝"
 echo ""
-echo "🎯 Quick Start:"
+echo "� App is ready at:"
+echo "   $SCRIPT_DIR/electron-app/dist/mac-arm64/OpenReLife.app"
+echo "   (or mac-x64 depending on your architecture)"
 echo ""
-echo "   Option 1: Launch from app"
-echo "   • Open Spotlight (Cmd+Space)"
-echo "   • Type 'OpenReLife' and press Enter"
+echo "👉 To install:"
+echo "   Drag the .app file to your Applications folder."
 echo ""
-echo "   Option 2: Launch from terminal"
-echo "   • cd $SCRIPT_DIR"
-echo "   • ./start_openrelife.sh"
+echo "⚠️  Permissions:"
+echo "   On first run, grant Accessibility & Screen Recording permissions"
+echo "   in System Settings > Privacy & Security."
 echo ""
-echo "⌨️  Usage:"
-echo "   • Cmd+Shift+Space: Open OpenReLife"
-echo "   • ESC: Close window"
-echo ""
-echo "🛑 Management:"
-echo "   • Stop:    ./start_openrelife.sh stop"
-echo "   • Status:  ./start_openrelife.sh status"
-echo "   • Restart: ./start_openrelife.sh restart"
-echo ""
-echo "⚠️  Important: Grant Accessibility Permissions"
-echo "   System Settings > Privacy & Security > Accessibility"
-echo "   Add 'Google Chrome' or 'Python' when prompted"
-echo ""
-echo "📖 Read HOTKEY_SETUP.md for more info"
-echo ""
+

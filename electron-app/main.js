@@ -227,12 +227,32 @@ function startBackend() {
 
   console.log('Starting backend in:', projectRoot);
   
-  // Using uv to run the python module
-  // Check if we need full path for uv in prod? For now assuming it's in env
+  // Enhance PATH to find uv in common user locations
+  const homeDir = app.getPath('home');
+  const commonPaths = [
+    path.join(homeDir, '.cargo/bin'),
+    '/usr/local/bin',
+    '/opt/homebrew/bin',
+    process.env.PATH
+  ];
+  
+  const env = { 
+    ...process.env, 
+    PATH: commonPaths.join(path.delimiter),
+    PYTHONUNBUFFERED: '1' 
+  };
+  
+  console.log('Spawning backend with PATH:', env.PATH);
+
   pythonProcess = spawn('uv', ['run', '-m', 'openrelife.app'], {
     cwd: projectRoot,
-    shell: true, // helps resolve command in some envs
-    env: { ...process.env, PYTHONUNBUFFERED: '1' }
+    shell: true,
+    env: env
+  });
+  
+  pythonProcess.on('error', (err) => {
+    console.error('Failed to start python process:', err);
+    dialog.showErrorBox('Backend Error', `Failed to start backend: ${err.message}. Make sure 'uv' is installed.`);
   });
 
   pythonProcess.stdout.on('data', (data) => {
