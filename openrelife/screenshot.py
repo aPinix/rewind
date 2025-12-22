@@ -150,6 +150,8 @@ def record_screenshots_thread():
             time.sleep(3)
             continue
 
+        from datetime import datetime
+        #print(f"[{datetime.now().strftime('%H:%M:%S.%f')}] Acquiring screenshot (interval: {screenshot_interval}s)...")
         screenshots = take_screenshots()
 
         for i, screenshot in enumerate(screenshots):
@@ -157,6 +159,7 @@ def record_screenshots_thread():
             last_screenshot = last_screenshots[i]
 
             if not is_similar(screenshot, last_screenshot):
+                #print(f"[{datetime.now().strftime('%H:%M:%S.%f')}] Change detected! Saving screenshot {i}...")
                 last_screenshots[i] = screenshot
                 
                 # 1. Run OCR on full resolution image

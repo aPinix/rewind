@@ -420,6 +420,7 @@ def timeline_v2():
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenReLife</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; overscroll-behavior-x: none; }
@@ -869,6 +870,49 @@ def timeline_v2():
     }
     .calendar-day.selected::after { background: white; }
     
+    /* Custom CSS Tooltip */
+    .tooltip-container {
+      position: relative;
+      display: inline-block;
+    }
+    .tooltip-text {
+      visibility: hidden;
+      width: 280px;
+      background: rgba(40, 40, 40, 0.98);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      text-align: center;
+      border-radius: 8px;
+      padding: 10px 14px;
+      position: absolute;
+      z-index: 2200;
+      bottom: 135%;
+      left: 50%;
+      transform: translateX(-50%) scale(0.95);
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      font-size: 13px;
+      line-height: 1.4;
+      pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .tooltip-text::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -6px;
+      border-width: 6px;
+      border-style: solid;
+      border-color: rgba(40, 40, 40, 0.98) transparent transparent transparent;
+    }
+    .tooltip-container:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+    
     @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
     
     /* Responsive adjustments */
@@ -1074,7 +1118,7 @@ def timeline_v2():
       <div class="settings-modal-body">
         <div class="form-group">
           <label>Screenshot Retention</label>
-          <select id="retentionSelect" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+          <select id="retentionSelect" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; height: auto; padding: 0.375rem 0.75rem;">
             <option value="-1">Keep Forever (Default)</option>
             <option value="7">7 Days</option>
             <option value="30">30 Days</option>
@@ -1088,8 +1132,14 @@ def timeline_v2():
         </div>
         
         <div class="form-group" style="margin-top: 24px;">
-          <label>Intervallo Screenshot (secondi)</label>
-          <input type="number" id="intervalInput" class="form-control" min="1" step="1" oninput="checkIntervalWarning(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+          <label>
+            Screenshot Interval (seconds)
+            <div class="tooltip-container">
+              <i class="bi bi-question-circle" style="cursor: help; margin-left: 4px; color: rgba(255,255,255,0.4);"></i>
+              <span class="tooltip-text">The effective time between captures will be this interval <strong>PLUS</strong> the OCR processing time (usually 10-20s).</span>
+            </div>
+          </label>
+          <input type="number" id="intervalInput" class="form-control" min="1" step="1" oninput="checkIntervalWarning(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; height: auto; padding: 0.375rem 0.75rem;">
           <div id="intervalWarning" style="margin-top: 12px; color: #ffc107; display: none; background: rgba(255, 193, 7, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107; font-size: 13px;">
             <i class="bi bi-exclamation-triangle-fill" style="margin-right: 8px;"></i>
             <strong>Warning:</strong> setting a value below 3 seconds will cause an <strong>unproportional</strong> increase in CPU and disk usage. Proceed only if strictly necessary.
@@ -1155,6 +1205,8 @@ def timeline_v2():
       </button>
     </div>
   </div>
+
+
 
   <script>
     let timestamps = {{timestamps|tojson}};
@@ -1888,6 +1940,7 @@ def timeline_v2():
     
     // Init Calendar
     initCalendar();
+
     
     // Update extracted text on change
     function updateExtractedText() {
