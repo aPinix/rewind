@@ -88,7 +88,9 @@ You can drag this file to your **Applications** folder.
 1. Open Spotlight / Raycast (**Cmd+Space**) or Launchpad and type **OpenReLife**.
 2. You will be prompted to grant **Screen Recording** permission in System Settings (if not, please do it manually from System Settings -> Privacy & Security -> Screen Recording -> +). This is required to capture screenshots.
 
-note: consider that the first run can take a while, and should ask recording permission as well; so, using the hotkeys could lead to a total black page for up to 30 seconds (on a Macbook Pro M1 with MacOS Tahoe 26.2). If the black page persists, the backend has not started, you can check it opening http://localhost:8082 in a web browser - if the port 8082 is available, it should not happen. Please open an issue if you experience this.
+note: please be aware that the app is still in an alpha state, and the first run experience is not yet the best; consider that the first run can take a while, and should ask recording permission as well; so, using the hotkeys to show the UI could lead to a total black page for lots of seconds (on a Macbook Pro M1 with MacOS Tahoe 26.2, ~30 seconds).
+**Remember that you can always close the UI pressing ESC.**
+If the black page persists, the backend failed to start, you can check it opening http://localhost:8082 in a web browser - if the port 8082 is available, it should not happen. Please open an issue if you experience this.
 
 ### Technical details
 
