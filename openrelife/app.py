@@ -1398,6 +1398,15 @@ def timeline_v2():
               document.getElementById('extractedText').textContent = "Error loading info.";
           }
       }
+      
+      // Trigger prefetch for neighbors with debounce
+      // This prevents thousands of requests when scrolling quickly
+      clearTimeout(prefetchTimeout);
+      prefetchTimeout = setTimeout(() => {
+          const sliderVal = parseInt(slider.value);
+          const currentIdx = timestamps.length - 1 - sliderVal;
+          prefetchNeighbors(currentIdx);
+      }, 500);
     }
     
     // Slider
@@ -1411,6 +1420,57 @@ def timeline_v2():
       
       updateDisplay(timestamps[idx]);
     });
+
+    // Prefetching Logic
+    const fetchingMetadata = new Set();
+    let prefetchTimeout = null;
+
+    async function prefetchNeighbors(currentIndex) {
+        const PREFETCH_RANGE = 20; // Fetch 20 frames before and after
+        const neighbors = [];
+
+        for (let i = 1; i <= PREFETCH_RANGE; i++) {
+            // Check future (more recent)
+            if (currentIndex - i >= 0) neighbors.push(currentIndex - i);
+            // Check past (older)
+            if (currentIndex + i < timestamps.length) neighbors.push(currentIndex + i);
+        }
+
+        // Filter: only fetch what we don't have and aren't already fetching
+        const toFetch = neighbors.filter(idx => {
+            const ts = timestamps[idx];
+            return !entriesData[ts] && !fetchingMetadata.has(ts);
+        });
+
+        // Loop and fetch sequentially (or parallel-limit) to avoid flooding
+        for (const idx of toFetch) {
+            const ts = timestamps[idx];
+            fetchingMetadata.add(ts);
+            
+            // We fetch without await inside the loop to allow some parallelism, 
+            // but we might want to respect browser limits. 
+            // For now, let's just trigger them.
+            fetch(`/api/entry/${ts}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        entriesData[ts] = data;
+                        // If user happened to scroll to this one while it was loading in background:
+                        const currentSliderVal = parseInt(slider.value);
+                        const currentIdx = timestamps.length - 1 - currentSliderVal;
+                        if (timestamps[currentIdx] === ts) {
+                            currentEntry = data;
+                            if (screenshot.complete) renderOverlay();
+                            updateExtractedText();
+                        }
+                    }
+                })
+                .catch(err => console.error("Prefetch error", err))
+                .finally(() => {
+                    fetchingMetadata.delete(ts);
+                });
+        }
+    }
     
     // Trackpad scrubbing
     let accDelta = 0, isScrolling = false, scrollTimeout = null;
@@ -1457,6 +1517,14 @@ def timeline_v2():
           scrollTimeout = setTimeout(() => {
             isScrolling = false;
             renderOverlay();
+            
+            // Trigger prefetch for neighbors with debounce
+            clearTimeout(prefetchTimeout);
+            prefetchTimeout = setTimeout(() => {
+                const idx = timestamps.length - 1 - slider.value;
+                prefetchNeighbors(idx);
+            }, 500);
+            
           }, 300);
         }
       }
@@ -1479,6 +1547,12 @@ def timeline_v2():
           }
           
           updateDisplay(timestamps[idx]);
+          
+          // Trigger prefetch for neighbors with debounce
+          clearTimeout(prefetchTimeout);
+          prefetchTimeout = setTimeout(() => {
+              prefetchNeighbors(idx);
+          }, 500);
         }
       } else if (e.key === 'Escape') {
         closeTextPopup();
