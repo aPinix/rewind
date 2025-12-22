@@ -53,20 +53,31 @@ def create_db() -> None:
         print(f"Database error during table creation: {e}")
 
 
-def get_all_entries() -> List[Entry]:
+def get_all_entries(limit: int = None, min_timestamp: int = 0) -> List[Entry]:
     """
-    Retrieves all entries from the database.
+    Retrieves entries from the database.
+
+    Args:
+        limit (int, optional): Maximum number of entries to return. Defaults to None (all).
+        min_timestamp (int, optional): Only return entries newer than this timestamp. Defaults to 0.
 
     Returns:
-        List[Entry]: A list of all entries as Entry namedtuples.
-                     Returns an empty list if the table is empty or an error occurs.
+        List[Entry]: A list of entries as Entry namedtuples.
     """
     entries: List[Entry] = []
     try:
         with sqlite3.connect(db_path) as conn:
             conn.row_factory = sqlite3.Row  # Return rows as dictionary-like objects
             cursor = conn.cursor()
-            cursor.execute("SELECT id, app, title, text, timestamp, embedding, words_coords, ai_text, ai_words_coords FROM entries ORDER BY timestamp DESC")
+            
+            query = "SELECT id, app, title, text, timestamp, embedding, words_coords, ai_text, ai_words_coords FROM entries WHERE timestamp > ? ORDER BY timestamp DESC"
+            params = [min_timestamp]
+            
+            if limit:
+                query += " LIMIT ?"
+                params.append(limit)
+            
+            cursor.execute(query, tuple(params))
             results = cursor.fetchall()
             for row in results:
                 # Deserialize the embedding blob back into a NumPy array
@@ -216,3 +227,55 @@ def delete_entries(timestamps: List[int]) -> int:
     except sqlite3.Error as e:
         print(f"Database error during deletion: {e}")
     return deleted_count
+
+
+
+
+def get_entry_by_timestamp(timestamp: int) -> Optional[Entry]:
+    """
+    Retrieves a single entry by its timestamp.
+
+    Args:
+        timestamp (int): The timestamp of the entry to retrieve.
+
+    Returns:
+        Optional[Entry]: The entry as an Entry namedtuple, or None if not found.
+    """
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            query = "SELECT id, app, title, text, timestamp, embedding, words_coords, ai_text, ai_words_coords FROM entries WHERE timestamp = ?"
+            cursor.execute(query, (timestamp,))
+            row = cursor.fetchone()
+            
+            if row:
+                # Deserialize the embedding blob back into a NumPy array
+                embedding = np.frombuffer(row["embedding"], dtype=np.float32)
+                words_coords_str = row["words_coords"] if row["words_coords"] else "[]"
+                try:
+                    words_coords = json.loads(words_coords_str)
+                except (json.JSONDecodeError, TypeError):
+                    words_coords = []
+                
+                ai_words_coords_str = row["ai_words_coords"] if row["ai_words_coords"] else "[]"
+                try:
+                    ai_words_coords = json.loads(ai_words_coords_str)
+                except (json.JSONDecodeError, TypeError):
+                    ai_words_coords = []
+                    
+                return Entry(
+                    id=row["id"],
+                    app=row["app"],
+                    title=row["title"],
+                    text=row["text"],
+                    timestamp=row["timestamp"],
+                    embedding=embedding,
+                    words_coords=words_coords,
+                    ai_text=row["ai_text"],
+                    ai_words_coords=ai_words_coords
+                )
+    except sqlite3.Error as e:
+        print(f"Database error during entry retrieval: {e}")
+    
+    return None

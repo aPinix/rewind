@@ -10,13 +10,22 @@ logger = logging.getLogger(__name__)
 MODEL_NAME: str = "all-MiniLM-L6-v2"
 EMBEDDING_DIM: int = 384  # Dimension for all-MiniLM-L6-v2
 
-# Load the model globally to avoid reloading it on every call
-try:
-    model = SentenceTransformer(MODEL_NAME)
-    logger.info(f"SentenceTransformer model '{MODEL_NAME}' loaded successfully.")
-except Exception as e:
-    logger.error(f"Failed to load SentenceTransformer model '{MODEL_NAME}': {e}")
-    model = None
+# Global model cache
+_model_cache = None
+
+def get_model():
+    """Lazy load the SentenceTransformer model"""
+    global _model_cache
+    if _model_cache is None:
+        try:
+            logger.info(f"Loading SentenceTransformer model '{MODEL_NAME}'...")
+            _model_cache = SentenceTransformer(MODEL_NAME)
+            logger.info(f"SentenceTransformer model '{MODEL_NAME}' loaded successfully.")
+        except Exception as e:
+            logger.error(f"Failed to load SentenceTransformer model '{MODEL_NAME}': {e}")
+            _model_cache = None
+            return None
+    return _model_cache
 
 
 def get_embedding(text: str) -> np.ndarray:
@@ -35,6 +44,7 @@ def get_embedding(text: str) -> np.ndarray:
         or a zero vector if the input is empty, whitespace only, or the
         model failed to load. The array type is float32.
     """
+    model = get_model()
     if model is None:
         logger.error("SentenceTransformer model is not loaded. Returning zero vector.")
         return np.zeros(EMBEDDING_DIM, dtype=np.float32)

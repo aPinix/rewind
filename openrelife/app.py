@@ -8,7 +8,7 @@ from jinja2 import BaseLoader
 from PIL import Image
 
 from openrelife.config import appdata_folder, screenshots_path
-from openrelife.database import create_db, get_all_entries, get_timestamps, update_ai_ocr, delete_entries
+from openrelife.database import create_db, get_all_entries, get_timestamps, update_ai_ocr, delete_entries, get_entry_by_timestamp
 from openrelife.nlp import cosine_similarity, get_embedding
 from openrelife.screenshot import (
     record_screenshots_thread,
@@ -400,8 +400,19 @@ app.jinja_env.loader = StringLoader()
 @app.route("/timeline-v2")
 def timeline_v2():
     """New Rewind.ai style interface"""
-    timestamps = get_timestamps()
-    entries = get_all_entries()
+    all_timestamps = get_timestamps()
+    # Optimization: Loading too many entries causes slow page rendering.
+    # We limit initial load to 50 items. The user will see the most recent ones.
+    # The frontend will fetch older entries on demand.
+    limit = 50
+    if len(all_timestamps) > limit:
+        # We still need all timestamps for the slider
+        partial_timestamps = all_timestamps[:limit]
+        entries = get_all_entries(limit=limit)
+    else:
+        partial_timestamps = all_timestamps
+        entries = get_all_entries()
+
     entries_dict = {
         entry.timestamp: {
             'id': entry.id,
@@ -1338,15 +1349,55 @@ def timeline_v2():
     if (document.visibilityState === 'visible') startSync();
     
     // Update display
-    function updateDisplay(timestamp) {
+    // Update display
+    async function updateDisplay(timestamp) {
+      // Update basic UI immediately
       screenshot.src = `/static/${timestamp}.webp`;
       dateEl.textContent = new Date(timestamp / 1000).toLocaleString('en-US', {
         month: 'short', day: 'numeric', year: 'numeric',
         hour: 'numeric', minute: '2-digit', hour12: true
       });
-      currentEntry = entriesData[timestamp];
-      screenshot.onload = renderOverlay;
-      updateExtractedText();
+      
+      // Check if we have data
+      if (entriesData[timestamp]) {
+          currentEntry = entriesData[timestamp];
+          
+          // If image already loaded, render immediately, otherwise wait for onload
+          if (screenshot.complete && screenshot.naturalHeight !== 0) {
+              renderOverlay();
+          }
+          screenshot.onload = renderOverlay;
+          
+          updateExtractedText();
+      } else {
+          // Loading state
+          currentEntry = null;
+          renderOverlay(); // Clears overlay
+          document.getElementById('extractedText').innerHTML = '<span class="text-muted"><i class="bi bi-arrow-clockwise spinner-border spinner-border-sm"></i> Loading info...</span>';
+          
+          try {
+              const res = await fetch(`/api/entry/${timestamp}`);
+              const data = await res.json();
+              
+              if (data.success) {
+                  entriesData[timestamp] = data;
+                  
+                  // Check if user is still on this timestamp
+                  const sliderVal = parseInt(slider.value);
+                  const currentIdx = timestamps.length - 1 - sliderVal;
+                  if (timestamps[currentIdx] === timestamp) {
+                      currentEntry = data;
+                      if (screenshot.complete) renderOverlay();
+                      updateExtractedText();
+                  }
+              } else {
+                  document.getElementById('extractedText').textContent = "Info not available.";
+              }
+          } catch (e) {
+              console.error("Fetch error", e);
+              document.getElementById('extractedText').textContent = "Error loading info.";
+          }
+      }
     }
     
     // Slider
@@ -1992,7 +2043,24 @@ def timeline_v2():
   </script>
 </body>
 </html>
-    """, timestamps=timestamps, entries_dict=entries_dict)
+    """, timestamps=all_timestamps, entries_dict=entries_dict)
+
+
+@app.route("/api/entry/<int:timestamp>")
+def api_get_entry(timestamp):
+    entry = get_entry_by_timestamp(timestamp)
+    if entry:
+        return jsonify({
+            'success': True,
+            'id': entry.id,
+            'text': entry.text,
+            'timestamp': entry.timestamp,
+            'words_coords': entry.words_coords,
+            'ai_text': entry.ai_text,
+            'ai_words_coords': entry.ai_words_coords if entry.ai_words_coords else []
+        })
+    else:
+        return jsonify({'success': False, 'error': 'Entry not found'}), 404
 
 
 @app.route("/api/search")
@@ -2045,10 +2113,10 @@ def api_sync():
     except ValueError:
         since = 0
         
-    entries = get_all_entries()
     
-    # Filter entries newer than 'since'
-    new_entries = [e for e in entries if e.timestamp > since]
+    # Efficiently fetch only new entries using SQL filtering
+    # This optimization prevents the server from reading the entire DB every 2 seconds
+    new_entries = get_all_entries(min_timestamp=since)
     
     if not new_entries:
         return jsonify({'timestamps': [], 'entries': {}})
