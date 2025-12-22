@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage, Notification, dialog } = require('electron');
+const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage, Notification, dialog, systemPreferences, desktopCapturer } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 
@@ -14,6 +14,10 @@ if (process.platform === 'darwin') {
   app.setName('OpenReLife');
 }
 
+function hasScreenAccess() {
+  return process.platform !== 'darwin' || systemPreferences.getMediaAccessStatus('screen') === 'granted';
+}
+
 function loadApp() {
   if (!mainWindow) return;
 
@@ -21,7 +25,7 @@ function loadApp() {
     .then(res => {
       if (res.ok) {
         mainWindow.loadURL(OPENRECALL_URL);
-        if (process.platform === 'darwin') {
+        if (process.platform === 'darwin' && hasScreenAccess()) {
            mainWindow.setSimpleFullScreen(true);
         }
         mainWindow.show();
@@ -38,10 +42,13 @@ function loadApp() {
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
+  const hasAccess = hasScreenAccess();
 
+  // If we don't have screen access, don't cover the screen so user can see the prompt
   mainWindow = new BrowserWindow({
-    width: width,
-    height: height,
+    width: hasAccess ? width : 900,
+    height: hasAccess ? height : 600,
+    center: !hasAccess,
     show: false,
     frame: false,
     transparent: false,
@@ -53,9 +60,28 @@ function createWindow() {
       enableRemoteModule: false
     },
     skipTaskbar: true,
-    simpleFullscreen: true,
+    simpleFullscreen: hasAccess,
     icon: path.join(__dirname, 'app-icon.png')
   });
+
+  if (!hasAccess && process.platform === 'darwin') {
+      // Trigger the permission prompt
+      desktopCapturer.getSources({ types: ['screen'] })
+          .then(() => console.log('Permission check triggered'))
+          .catch(err => console.error('Permission check error:', err));
+      
+      // Monitor for permission change
+      const checkInterval = setInterval(() => {
+          if (hasScreenAccess()) {
+              clearInterval(checkInterval);
+              if (mainWindow) {
+                  mainWindow.setSimpleFullScreen(true);
+                  mainWindow.setSize(width, height);
+              }
+          }
+      }, 1000);
+      mainWindow.on('closed', () => clearInterval(checkInterval));
+  }
 
   // Load splash screen immediately
   mainWindow.loadFile(path.join(__dirname, 'loading.html'));
@@ -93,7 +119,16 @@ function showWindow() {
   
   if (mainWindow) {
     mainWindow.webContents.send('reset-ui');
-    mainWindow.setSimpleFullScreen(true);
+    if (hasScreenAccess()) {
+        mainWindow.setSimpleFullScreen(true);
+    } else {
+        mainWindow.setSimpleFullScreen(false);
+        // Maybe ensure reasonably sized if not fullscreen?
+        if (mainWindow.getBounds().width < 100) {
+             mainWindow.setSize(900, 600);
+             mainWindow.center();
+        }
+    }
     mainWindow.show();
     mainWindow.focus();
   }
