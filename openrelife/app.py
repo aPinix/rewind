@@ -10,11 +10,29 @@ from PIL import Image
 from openrelife.config import appdata_folder, screenshots_path
 from openrelife.database import create_db, get_all_entries, get_timestamps, update_ai_ocr, delete_entries
 from openrelife.nlp import cosine_similarity, get_embedding
-from openrelife.screenshot import record_screenshots_thread, get_recording_paused, set_recording_paused
+from openrelife.screenshot import (
+    record_screenshots_thread,
+    get_recording_paused,
+    set_recording_paused,
+    get_screenshot_interval,
+    set_screenshot_interval
+)
 from openrelife.utils import human_readable_time, timestamp_to_human_readable
 from openrelife.ai_ocr import get_ai_provider
 
 app = Flask(__name__)
+
+def load_settings():
+    settings_path = os.path.join(appdata_folder, "settings.json")
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, 'r') as f:
+                import json
+                settings = json.load(f)
+                if 'screenshot_interval' in settings:
+                    set_screenshot_interval(int(settings['screenshot_interval']))
+        except Exception as e:
+            print(f"Error loading settings: {e}")
 
 app.jinja_env.filters["human_readable_time"] = human_readable_time
 app.jinja_env.filters["timestamp_to_human_readable"] = timestamp_to_human_readable
@@ -1068,6 +1086,15 @@ def timeline_v2():
             <br><span style="color: #ffc107;"><i class="bi bi-exclamation-triangle"></i> Changing this will permanently delete old data.</span>
           </small>
         </div>
+        
+        <div class="form-group" style="margin-top: 24px;">
+          <label>Intervallo Screenshot (secondi)</label>
+          <input type="number" id="intervalInput" class="form-control" min="1" step="1" oninput="checkIntervalWarning(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+          <div id="intervalWarning" style="margin-top: 12px; color: #ffc107; display: none; background: rgba(255, 193, 7, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107; font-size: 13px;">
+            <i class="bi bi-exclamation-triangle-fill" style="margin-right: 8px;"></i>
+            <strong>Warning:</strong> setting a value below 3 seconds will cause an <strong>unproportional</strong> increase in CPU and disk usage. Proceed only if strictly necessary.
+          </div>
+        </div>
       </div>
       <div class="settings-modal-footer">
         <button class="btn btn-secondary" onclick="closeSettings()">Close</button>
@@ -1691,13 +1718,29 @@ def timeline_v2():
     // Settings Logic
     function openSettings() {
         document.getElementById('settingsModalOverlay').classList.add('show');
-        // Load current
+        // Load retention
         fetch('/api/settings/retention')
             .then(r => r.json())
             .then(data => {
-                const sel = document.getElementById('retentionSelect');
-                sel.value = data.days;
+                document.getElementById('retentionSelect').value = data.days;
             });
+        // Load interval
+        fetch('/api/settings/interval')
+            .then(r => r.json())
+            .then(data => {
+                const input = document.getElementById('intervalInput');
+                input.value = data.interval;
+                checkIntervalWarning(data.interval);
+            });
+    }
+
+    function checkIntervalWarning(val) {
+        const warning = document.getElementById('intervalWarning');
+        if (parseInt(val) < 3) {
+            warning.style.display = 'block';
+        } else {
+            warning.style.display = 'none';
+        }
     }
 
     function closeSettings() {
@@ -1706,15 +1749,25 @@ def timeline_v2():
 
     function saveSettings() {
         const days = document.getElementById('retentionSelect').value;
-        fetch('/api/settings/retention', {
+        const interval = document.getElementById('intervalInput').value;
+        
+        const p1 = fetch('/api/settings/retention', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({days: days})
-        })
-        .then(r => r.json())
-        .then(data => {
-            if(data.success) {
-                showToast('Settings saved successfully! Cleanup started.', 'success');
+        });
+        
+        const p2 = fetch('/api/settings/interval', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({interval: interval})
+        });
+
+        Promise.all([p1, p2])
+        .then(responses => Promise.all(responses.map(r => r.json())))
+        .then(results => {
+            if(results.every(r => r.success)) {
+                showToast('Settings saved successfully!', 'success');
                 closeSettings();
             } else {
                 showToast('Error saving settings', 'error');
@@ -2870,6 +2923,51 @@ def ai_config():
         return jsonify({'success': True})
 
 
+@app.route("/api/settings/retention", methods=["GET", "POST"])
+def api_settings_retention():
+    settings_path = os.path.join(appdata_folder, "settings.json")
+    import json
+    if request.method == "GET":
+        days = -1
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r') as f:
+                settings = json.load(f)
+                days = settings.get('retention_days', -1)
+        return jsonify({'days': str(days)})
+    else:
+        data = request.json
+        days = data.get('days', -1)
+        settings = {}
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r') as f:
+                settings = json.load(f)
+        settings['retention_days'] = int(days)
+        with open(settings_path, 'w') as f:
+            json.dump(settings, f)
+        return jsonify({'success': True})
+
+
+@app.route("/api/settings/interval", methods=["GET", "POST"])
+def api_settings_interval():
+    settings_path = os.path.join(appdata_folder, "settings.json")
+    import json
+    if request.method == "GET":
+        interval = get_screenshot_interval()
+        return jsonify({'interval': str(interval)})
+    else:
+        data = request.json
+        interval = int(data.get('interval', 3))
+        set_screenshot_interval(interval)
+        settings = {}
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r') as f:
+                settings = json.load(f)
+        settings['screenshot_interval'] = interval
+        with open(settings_path, 'w') as f:
+            json.dump(settings, f)
+        return jsonify({'success': True})
+
+
 if __name__ == "__main__":
     import socket
     import sys
@@ -2885,6 +2983,7 @@ if __name__ == "__main__":
         sys.exit(1)
     
     create_db()
+    load_settings()
 
     print(f"Appdata folder: {appdata_folder}")
 

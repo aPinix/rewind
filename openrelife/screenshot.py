@@ -107,6 +107,7 @@ def take_screenshots() -> List[np.ndarray]:
 
 # Global flag to control recording pause state
 is_recording_paused = False
+screenshot_interval = 3  # Default interval in seconds
 
 def set_recording_paused(paused: bool):
     global is_recording_paused
@@ -115,6 +116,14 @@ def set_recording_paused(paused: bool):
 def get_recording_paused() -> bool:
     global is_recording_paused
     return is_recording_paused
+
+def set_screenshot_interval(interval: int):
+    global screenshot_interval
+    screenshot_interval = max(1, interval)
+
+def get_screenshot_interval() -> int:
+    global screenshot_interval
+    return screenshot_interval
 
 
 def record_screenshots_thread():
@@ -177,5 +186,5 @@ def record_screenshots_thread():
                     text, timestamp, embedding, active_app_name, active_window_title, words_coords
                 )
 
-        time.sleep(3) # Wait before taking the next screenshot
+        time.sleep(screenshot_interval) # Wait before taking the next screenshot
 

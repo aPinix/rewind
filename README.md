@@ -42,6 +42,7 @@ The software is currently in active development (with a huge help from AI agents
 - **Local-First AI**: OpenReLife harnesses the power of OpenRecall's local AI processing, with optional cloud-based AI processing for enhanced capabilities.
 - **Semantic Search**: Advanced local OCR interprets your history, providing robust semantic search capabilities.
 - **Full Control Over Storage**: Your data is stored locally, giving you complete control over its management and security.
+- **Auto-Pause**: Recording automatically pauses when you are inactive to save space
 
 ## Get Started
  
