@@ -282,7 +282,8 @@ function startBackend() {
   pythonProcess = spawn('uv', ['run', '-m', 'openrelife.app'], {
     cwd: projectRoot,
     shell: true,
-    env: env
+    env: env,
+    detached: true
   });
   
   pythonProcess.on('error', (err) => {
@@ -317,13 +318,21 @@ function stopBackend() {
     if (process.platform === 'win32') {
         spawn("taskkill", ["/pid", pythonProcess.pid, '/f', '/t']);
     } else {
-        process.kill(-pythonProcess.pid, 'SIGTERM'); 
-        // Note: For this to work with shell: true, we need { detached: true } in spawn options usually.
-        // But let's try standard kill first or modify spawn options.
-        // Actually without detached: true, negative pid might fail.
-        // Let's just try simple kill first, often enough if uv traps sigterm.
-        pythonProcess.kill(); 
+        try {
+            // Kill the entire process group
+            // This requires the process to be spawned with detached: true
+            process.kill(-pythonProcess.pid, 'SIGTERM'); 
+        } catch (err) {
+            console.error('Failed to kill process group:', err);
+            // Fallback
+            try {
+                pythonProcess.kill();
+            } catch (e) {
+                console.error('Failed to kill process:', e);
+            }
+        }
     }
+    pythonProcess = null;
   }
 }
 

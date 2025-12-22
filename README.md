@@ -52,7 +52,7 @@ The software is currently in active development (with a huge help from AI agents
  
 ### Installation
 
-You can directly download the latest release from [GitHub releases](https://github.com/porech/openrelife/releases); as per now, the app needs external dependencies to work, so please follow the manual installation instructions to get started.
+You can directly download the latest release from [GitHub releases](https://github.com/porech/openrelife/releases); as per now, the app needs external dependencies to work ([uv](https://astral.sh/uv)), so please follow the manual installation instructions to get started.
 In the near future, this will (hopefully) change.
 
 ### Backend Arguments (from OpenRecall)
