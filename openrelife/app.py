@@ -1345,6 +1345,7 @@ def timeline_v2():
     });
     window.addEventListener("focus", startSync);
     window.addEventListener("blur", stopSync);
+    let currentAbortController = null;
 
     if (document.visibilityState === 'visible') startSync();
     
@@ -1376,7 +1377,10 @@ def timeline_v2():
           document.getElementById('extractedText').innerHTML = '<span class="text-muted"><i class="bi bi-arrow-clockwise spinner-border spinner-border-sm"></i> Loading info...</span>';
           
           try {
-              const res = await fetch(`/api/entry/${timestamp}`);
+              if (currentAbortController) currentAbortController.abort();
+              currentAbortController = new AbortController();
+              
+              const res = await fetch(`/api/entry/${timestamp}`, { signal: currentAbortController.signal });
               const data = await res.json();
               
               if (data.success) {
@@ -1394,6 +1398,7 @@ def timeline_v2():
                   document.getElementById('extractedText').textContent = "Info not available.";
               }
           } catch (e) {
+              if (e.name === 'AbortError') return;
               console.error("Fetch error", e);
               document.getElementById('extractedText').textContent = "Error loading info.";
           }
@@ -1428,6 +1433,9 @@ def timeline_v2():
     async function prefetchNeighbors(currentIndex) {
         const PREFETCH_RANGE = 20; // Fetch 20 frames before and after
         const neighbors = [];
+
+        // Include current index to ensure it gets loaded if updateDisplay failed/aborted
+        neighbors.push(currentIndex);
 
         for (let i = 1; i <= PREFETCH_RANGE; i++) {
             // Check future (more recent)
