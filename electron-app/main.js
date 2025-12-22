@@ -1,6 +1,7 @@
-const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage, Notification, dialog, systemPreferences, desktopCapturer } = require('electron');
+const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage, Notification, dialog, systemPreferences, desktopCapturer, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+const fs = require('fs');
 
 const OPENRECALL_URL = 'http://127.0.0.1:8082';
 let mainWindow = null;
@@ -49,7 +50,7 @@ function createWindow() {
     width: hasAccess ? width : 900,
     height: hasAccess ? height : 600,
     center: !hasAccess,
-    show: false,
+    show: false, // Wait for ready-to-show
     frame: false,
     transparent: false,
     backgroundColor: '#000000',
@@ -86,11 +87,13 @@ function createWindow() {
   // Load splash screen immediately
   mainWindow.loadFile(path.join(__dirname, 'loading.html'));
   
-  // Start trying to connect to backend
+  // Start trying to connect to backend (it might be starting up)
   loadApp();
 
   mainWindow.once('ready-to-show', () => {
-    console.log('✅ Window ready');
+    console.log('✅ Window ready to show');
+    mainWindow.show();
+    mainWindow.focus();
   });
 
   mainWindow.on('closed', () => {
@@ -289,6 +292,7 @@ function createTray() {
 
 
 let pythonProcess = null;
+let backendLogStream = null;
 
 function startBackend() {
   const isDev = !app.isPackaged;
@@ -297,10 +301,26 @@ function startBackend() {
 
   console.log('Starting backend in:', projectRoot);
   
+  // Set up logging
+  const userDataPath = app.getPath('userData');
+  const logsDir = path.join(userDataPath, 'logs');
+  if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+  }
+  const logPath = path.join(logsDir, 'backend.log');
+  console.log('Backend logs will be written to:', logPath);
+  
+  try {
+    backendLogStream = fs.createWriteStream(logPath, { flags: 'a' });
+  } catch (err) {
+    console.error('Failed to create log stream:', err);
+  }
+
   // Enhance PATH to find uv in common user locations
   const homeDir = app.getPath('home');
   const commonPaths = [
     path.join(homeDir, '.cargo/bin'),
+    path.join(homeDir, '.local/bin'),
     '/usr/local/bin',
     '/opt/homebrew/bin',
     process.env.PATH
@@ -309,7 +329,9 @@ function startBackend() {
   const env = { 
     ...process.env, 
     PATH: commonPaths.join(path.delimiter),
-    PYTHONUNBUFFERED: '1' 
+    PYTHONUNBUFFERED: '1',
+    // Ensure we don't pick up some random virtualenv
+    VIRTUAL_ENV: undefined
   };
   
   console.log('Spawning backend with PATH:', env.PATH);
@@ -318,19 +340,21 @@ function startBackend() {
     cwd: projectRoot,
     shell: true,
     env: env,
-    detached: true
+    detached: true // Important for clean separation
   });
   
-  pythonProcess.on('error', (err) => {
-    console.error('Failed to start python process:', err);
-    dialog.showErrorBox('Backend Error', `Failed to start backend: ${err.message}. Make sure 'uv' is installed.`);
-  });
+  if (backendLogStream) {
+     const timestamp = new Date().toISOString();
+     backendLogStream.write(`\n--- New Session: ${timestamp} ---\n`);
+  }
 
   pythonProcess.stdout.on('data', (data) => {
+    if (backendLogStream) backendLogStream.write(data);
     console.log(`Backend: ${data}`);
   });
 
   pythonProcess.stderr.on('data', (data) => {
+    if (backendLogStream) backendLogStream.write(data);
     // Werkzeug logs to stderr by default, treat as info
     const str = data.toString();
     if (str.includes('Error:') || str.includes('Exception:') || str.includes('Traceback')) {
@@ -339,23 +363,58 @@ function startBackend() {
         console.log(`Backend Log: ${str}`); 
     }
   });
+  
+  pythonProcess.on('error', (err) => {
+    console.error('Failed to spawn python process:', err);
+    if (backendLogStream) backendLogStream.write(`Failed to spawn: ${err.message}\n`);
+    dialog.showErrorBox('Backend Error', `Failed to start backend: ${err.message}. Make sure 'uv' is installed and available.`);
+  });
 
   pythonProcess.on('close', (code) => {
     console.log(`Backend exited with code ${code}`);
+    if (backendLogStream) backendLogStream.write(`Backend exited with code ${code}\n`);
     pythonProcess = null;
+    
+    // If exit was abnormal and not during quit
+    if (code !== 0 && !app.isQuitting) {
+        // Read tail of log file to show error
+        let errorDetails = `Code: ${code}`;
+        try {
+            if (fs.existsSync(logPath)) {
+                const logs = fs.readFileSync(logPath, 'utf8');
+                const lines = logs.trim().split('\n');
+                errorDetails = lines.slice(-10).join('\n');
+            }
+        } catch (e) {
+            console.error('Failed to read logs for error', e);
+        }
+
+        dialog.showMessageBox({
+            type: 'error',
+            title: 'Backend Failed',
+            message: 'The backend service stopped unexpectedly.',
+            detail: errorDetails,
+            buttons: ['OK', 'Open Logs']
+        }).then(({ response }) => {
+            if (response === 1) {
+                shell.openPath(logPath);
+            }
+        });
+    }
   });
 }
 
 function stopBackend() {
   if (pythonProcess) {
     console.log('Stopping backend...');
+    if (backendLogStream) backendLogStream.end();
+
     // Kill the process group to ensure children (python) are killed since we used shell: true
     if (process.platform === 'win32') {
         spawn("taskkill", ["/pid", pythonProcess.pid, '/f', '/t']);
     } else {
         try {
             // Kill the entire process group
-            // This requires the process to be spawned with detached: true
             process.kill(-pythonProcess.pid, 'SIGTERM'); 
         } catch (err) {
             console.error('Failed to kill process group:', err);
@@ -441,6 +500,6 @@ app.on('will-quit', () => {
 
 // Prevent app from quitting
 app.on('before-quit', (event) => {
-  stopBackend();
+  // stopBackend(); // will-quit handles it
   // Allow quit only if explicitly requested
 });
