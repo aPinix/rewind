@@ -47,9 +47,9 @@ The software is currently in active development (with a huge help from AI agents
  
 ### Prerequisites
 - macOS (Windows/Linux support needs testing)
-- [uv](https://astral.sh/uv) (for Python dependency management)
-- [Node.js](https://nodejs.org/) & npm (for building the Electron app)
-- Python 3.11+
+- [uv](https://astral.sh/uv) (needed, for backend's Python dependency management)
+- [Node.js](https://nodejs.org/) & npm (facultative, needed to build the Electron app)
+- Python 3.11+ (should be installed and managed by uv)
  
 ### Installation
 
