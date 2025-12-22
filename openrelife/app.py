@@ -1139,7 +1139,7 @@ def timeline_v2():
               <span class="tooltip-text">The effective time between captures will be this interval <strong>PLUS</strong> the OCR processing time (usually 10-20s).</span>
             </div>
           </label>
-          <input type="number" id="intervalInput" class="form-control" min="1" step="1" oninput="checkIntervalWarning(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; height: auto; padding: 0.375rem 0.75rem;">
+          <input type="text" inputmode="numeric" id="intervalInput" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, ''); checkIntervalWarning(this.value)" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; height: auto; padding: 0.375rem 0.75rem;">
           <div id="intervalWarning" style="margin-top: 12px; color: #ffc107; display: none; background: rgba(255, 193, 7, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107; font-size: 13px;">
             <i class="bi bi-exclamation-triangle-fill" style="margin-right: 8px;"></i>
             <strong>Warning:</strong> setting a value below 3 seconds will cause an <strong>unproportional</strong> increase in CPU and disk usage. Proceed only if strictly necessary.
@@ -1824,6 +1824,10 @@ def timeline_v2():
             } else {
                 showToast('Error saving settings', 'error');
             }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Failed to save settings', 'error');
         });
     }
 
@@ -2983,17 +2987,27 @@ def api_settings_retention():
     if request.method == "GET":
         days = -1
         if os.path.exists(settings_path):
-            with open(settings_path, 'r') as f:
-                settings = json.load(f)
-                days = settings.get('retention_days', -1)
+            try:
+                with open(settings_path, 'r') as f:
+                    content = f.read().strip()
+                    if content:
+                        settings = json.loads(content)
+                        days = settings.get('retention_days', -1)
+            except Exception:
+                pass
         return jsonify({'days': str(days)})
     else:
         data = request.json
         days = data.get('days', -1)
         settings = {}
         if os.path.exists(settings_path):
-            with open(settings_path, 'r') as f:
-                settings = json.load(f)
+            try:
+                with open(settings_path, 'r') as f:
+                    content = f.read().strip()
+                    if content:
+                        settings = json.loads(content)
+            except Exception:
+                pass
         settings['retention_days'] = int(days)
         with open(settings_path, 'w') as f:
             json.dump(settings, f)
@@ -3013,8 +3027,13 @@ def api_settings_interval():
         set_screenshot_interval(interval)
         settings = {}
         if os.path.exists(settings_path):
-            with open(settings_path, 'r') as f:
-                settings = json.load(f)
+            try:
+                with open(settings_path, 'r') as f:
+                    content = f.read().strip()
+                    if content:
+                        settings = json.loads(content)
+            except Exception:
+                pass
         settings['screenshot_interval'] = interval
         with open(settings_path, 'w') as f:
             json.dump(settings, f)
