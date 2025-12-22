@@ -55,10 +55,21 @@ The software is currently in active development (with a huge help from AI agents
 You can directly download the latest release from [GitHub releases](https://github.com/porech/openrelife/releases); as per now, the app needs external dependencies to work ([uv](https://astral.sh/uv)), so please follow the manual installation instructions to get started.
 In the near future, this will (hopefully) change.
 
-### Backend Arguments (from OpenRecall)
---storage-path (default: user data path for your OS): allows you to specify the path where the screenshots and database should be stored. We recommend creating an encrypted volume to store your data.
+The dmg file contains the .app file, that you can drag to your Applications folder.
+The app is not signed and new MacOS versions will block the opening, saying it's "damaged" and suggesting to throw it in the trash; the app is not damaged: to fix this, you need to open a terminal, write down the following command (do not run it yet):
 
---primary-monitor-only (default: False): only record the primary monitor (rather than individual screenshots for other monitors)
+```bash
+sudo xattr -d com.apple.quarantine
+```
+now drag'n'drop the .app file (from Applications folder) in the terminal to add it's full path, then run it pressing enter.
+
+for me, the full line was:
+
+```bash
+sudo xattr -d com.apple.quarantine /System/Volumes/Data/Applications/OpenReLife.app
+```
+
+Then, just re-open the app from the Applications folder and it will work.
 
 ### Manual Installation 
 We provide a helper script to set up the environment and build the application on MacOS:
@@ -92,6 +103,11 @@ You can drag this file to your **Applications** folder.
 note: please be aware that the app is still in an alpha state, and the first run experience is not yet the best; consider that the first run can take a while, and should ask recording permission as well; so, using the hotkeys to show the UI could lead to a total black page for lots of seconds (on a Macbook Pro M1 with MacOS Tahoe 26.2, ~30 seconds).
 **Remember that you can always close the UI pressing ESC.**
 If the black page persists, the backend failed to start, you can check it opening http://localhost:8082 in a web browser - if the port 8082 is available, it should not happen. Please open an issue if you experience this.
+
+### Backend Arguments (from OpenRecall)
+--storage-path (default: user data path for your OS): allows you to specify the path where the screenshots and database should be stored. We recommend creating an encrypted volume to store your data.
+
+--primary-monitor-only (default: False): only record the primary monitor (rather than individual screenshots for other monitors)
 
 ### Technical details
 
