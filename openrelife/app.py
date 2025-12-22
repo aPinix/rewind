@@ -3043,14 +3043,28 @@ def api_settings_interval():
 if __name__ == "__main__":
     import socket
     import sys
+    import json
     
-    # Check if port is already in use
+    # 1. Load settings to get configured port
+    configured_port = 8082
+    settings_path = os.path.join(appdata_folder, "settings.json")
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, 'r') as f:
+                content = f.read().strip()
+                if content:
+                    settings = json.loads(content)
+                    configured_port = int(settings.get('server_port', 8082))
+        except Exception as e:
+            print(f"Error reading port config: {e}")
+
+    # 2. Check if port is already in use
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    port_in_use = sock.connect_ex(('127.0.0.1', 8082)) == 0
+    port_in_use = sock.connect_ex(('127.0.0.1', configured_port)) == 0
     sock.close()
     
     if port_in_use:
-        print("❌ Port 8082 is already in use. OpenReLife is already running.")
+        print(f"❌ Port {configured_port} is already in use. OpenReLife is already running.")
         print("💡 Use the hotkey (Cmd+Shift+Space) to open the interface.")
         sys.exit(1)
     
@@ -3058,9 +3072,12 @@ if __name__ == "__main__":
     load_settings()
 
     print(f"Appdata folder: {appdata_folder}")
+    print(f"🚀 Starting OpenReLife on port {configured_port} (Production Mode)...")
 
     # Start the thread to record screenshots
     t = Thread(target=record_screenshots_thread)
     t.start()
 
-    app.run(port=8082)
+    # Use Waitress for production
+    from waitress import serve
+    serve(app, host='127.0.0.1', port=configured_port, threads=6)
