@@ -14,6 +14,27 @@ if (process.platform === 'darwin') {
   app.setName('OpenReLife');
 }
 
+function loadApp() {
+  if (!mainWindow) return;
+
+  fetch(OPENRECALL_URL)
+    .then(res => {
+      if (res.ok) {
+        mainWindow.loadURL(OPENRECALL_URL);
+        if (process.platform === 'darwin') {
+           mainWindow.setSimpleFullScreen(true);
+        }
+        mainWindow.show();
+        mainWindow.focus();
+      } else {
+        throw new Error('Not ready');
+      }
+    })
+    .catch(() => {
+      setTimeout(loadApp, 1000);
+    });
+}
+
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
@@ -36,7 +57,11 @@ function createWindow() {
     icon: path.join(__dirname, 'app-icon.png')
   });
 
-  mainWindow.loadURL(OPENRECALL_URL);
+  // Load splash screen immediately
+  mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+  
+  // Start trying to connect to backend
+  loadApp();
 
   mainWindow.once('ready-to-show', () => {
     console.log('✅ Window ready');
@@ -52,11 +77,12 @@ function createWindow() {
       return;
     }
     console.error('Failed to load:', errorDescription);
-    setTimeout(() => {
-      if (mainWindow) {
-        mainWindow.loadURL(OPENRECALL_URL);
-      }
-    }, 1000);
+    
+    // Go back to loading screen if main app fails
+    if (mainWindow) {
+        mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+        setTimeout(loadApp, 1000);
+    }
   });
 } 
 

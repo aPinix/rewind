@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>OpenReLife</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .container {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      animation: fadeIn 0.8s ease-out forwards;
+    }
+
+    .logo-container {
+      position: relative;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      width: 96px;
+      height: 96px;
+      filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.15));
+      animation: breathe 3s infinite ease-in-out;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 500;
+      margin: 0 0 12px 0;
+      letter-spacing: 0.5px;
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 13px;
+      margin: 0;
+      font-weight: 400;
+      letter-spacing: 0.2px;
+    }
+
+    .progress-bar-container {
+      width: 160px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      margin-top: 32px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+      animation: shimmer 1.5s infinite linear;
+    }
+
+    @keyframes breathe {
+      0% {
+        transform: scale(1);
+        opacity: 0.9;
+      }
+
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 0.9;
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-150%);
+      }
+
+      100% {
+        transform: translateX(350%);
+      }
+    }
+
+    @keyframes fadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="logo-container">
+      <img src="./app-icon.png"
+           class="logo"
+           alt="OpenReLife">
+    </div>
+    <h1>OpenReLife</h1>
+    <p>Loading memories...</p>
+    <div class="progress-bar-container">
+      <div class="progress-bar"></div>
+    </div>
+  </div>
+</body>
+
+</html>
