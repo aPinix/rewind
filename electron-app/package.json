@@ -58,7 +58,8 @@
       "tray-iconTemplate.png",
       "tray-iconTemplate@2x.png",
       "app-icon.png",
-      "app-icon.svg"
+      "app-icon.svg",
+      "loading.html"
     ],
     "directories": {
       "output": "dist",

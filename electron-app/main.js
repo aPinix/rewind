@@ -19,12 +19,15 @@ function hasScreenAccess() {
   return process.platform !== 'darwin' || systemPreferences.getMediaAccessStatus('screen') === 'granted';
 }
 
-function loadApp() {
+function loadApp(retryCount = 0) {
   if (!mainWindow) return;
+
+  if (retryCount === 0) console.log(`Attempting to connect to ${OPENRECALL_URL}...`);
 
   fetch(OPENRECALL_URL)
     .then(res => {
       if (res.ok) {
+        console.log('✅ Backend connected! Loading app...');
         mainWindow.loadURL(OPENRECALL_URL);
         if (process.platform === 'darwin' && hasScreenAccess()) {
            mainWindow.setSimpleFullScreen(true);
@@ -32,11 +35,15 @@ function loadApp() {
         mainWindow.show();
         mainWindow.focus();
       } else {
-        throw new Error('Not ready');
+        throw new Error(`Status check failed: ${res.status} ${res.statusText}`);
       }
     })
-    .catch(() => {
-      setTimeout(loadApp, 1000);
+    .catch((err) => {
+      // Log failure (every few attempts to avoid spam, but first few are important)
+      if (retryCount < 5 || retryCount % 5 === 0) {
+          console.log(`Backend connection failed (attempt ${retryCount}): ${err.cause ? err.cause.message : err.message}`);
+      }
+      setTimeout(() => loadApp(retryCount + 1), 1000);
     });
 }
 
@@ -65,6 +72,9 @@ function createWindow() {
     icon: path.join(__dirname, 'app-icon.png')
   });
 
+  // Enable DevTools for debugging
+  //mainWindow.webContents.openDevTools({ mode: 'detach' });
+
   if (!hasAccess && process.platform === 'darwin') {
       // Trigger the permission prompt
       desktopCapturer.getSources({ types: ['screen'] })
@@ -85,7 +95,9 @@ function createWindow() {
   }
 
   // Load splash screen immediately
-  mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+  const loadingPath = path.join(__dirname, 'loading.html');
+  console.log('Loading splash screen from:', loadingPath);
+  mainWindow.loadFile(loadingPath);
   
   // Start trying to connect to backend (it might be starting up)
   loadApp();
