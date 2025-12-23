@@ -15,7 +15,9 @@ from openrelife.screenshot import (
     get_recording_paused,
     set_recording_paused,
     get_screenshot_interval,
-    set_screenshot_interval
+    set_screenshot_interval,
+    get_screenshot_quality,
+    set_screenshot_quality
 )
 from openrelife.utils import human_readable_time, timestamp_to_human_readable
 from openrelife.ai_ocr import get_ai_provider
@@ -31,6 +33,8 @@ def load_settings():
                 settings = json.load(f)
                 if 'screenshot_interval' in settings:
                     set_screenshot_interval(int(settings['screenshot_interval']))
+                if 'screenshot_quality' in settings:
+                    set_screenshot_quality(settings['screenshot_quality'])
         except Exception as e:
             print(f"Error loading settings: {e}")
 
@@ -1156,6 +1160,29 @@ def timeline_v2():
             <strong>Warning:</strong> setting a value below 3 seconds will cause an <strong>unproportional</strong> increase in CPU and disk usage. Proceed only if strictly necessary.
           </div>
         </div>
+
+        <div class="form-group" style="margin-top: 24px;">
+          <label>Screenshot Quality</label>
+          <select id="qualitySelect" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; height: auto; padding: 0.375rem 0.75rem;">
+            <option value="low">Low (80% scale, 80% quality)</option>
+            <option value="medium">Medium (95% scale, 95% quality)</option>
+            <option value="high">High (Original scale, Lossless)</option>
+          </select>
+          <small class="form-text text-muted" style="margin-top: 8px;">
+            Higher quality will result in larger file sizes.
+          </small>
+        </div>
+        
+        <div class="form-group" style="margin-top: 24px;">
+          <label>
+            Server Port
+             <div class="tooltip-container">
+              <i class="bi bi-question-circle" style="cursor: help; margin-left: 4px; color: rgba(255,255,255,0.4);"></i>
+              <span class="tooltip-text">Requires restart to take effect. Default: 8082</span>
+            </div>
+          </label>
+          <input type="text" inputmode="numeric" id="portInput" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; height: auto; padding: 0.375rem 0.75rem;">
+        </div>
       </div>
       <div class="settings-modal-footer">
         <button class="btn btn-secondary" onclick="closeSettings()">Close</button>
@@ -1917,6 +1944,18 @@ def timeline_v2():
                 input.value = data.interval;
                 checkIntervalWarning(data.interval);
             });
+        // Load quality
+        fetch('/api/settings/quality')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('qualitySelect').value = data.quality;
+            });
+        // Load port
+        fetch('/api/settings/port')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('portInput').value = data.port;
+            });
     }
 
     function checkIntervalWarning(val) {
@@ -1936,28 +1975,30 @@ def timeline_v2():
         const days = document.getElementById('retentionSelect').value;
         const interval = document.getElementById('intervalInput').value;
         
-        const p1 = fetch('/api/settings/retention', {
+        fetch('/api/settings', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({days: days})
-        });
-        
-        const p2 = fetch('/api/settings/interval', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({interval: interval})
-        });
-
-        Promise.all([p1, p2])
-        .then(responses => Promise.all(responses.map(r => r.json())))
-        .then(results => {
-            if(results.every(r => r.success)) {
-                showToast('Settings saved successfully!', 'success');
+            body: JSON.stringify({
+                retention_days: days,
+                interval: interval,
+                quality: document.getElementById('qualitySelect').value,
+                port: document.getElementById('portInput').value
+            })
+        })
+        .then(r => r.json())
+        .then(result => {
+             if(result.success) {
+                if (result.restart_required) {
+                    showToast('Settings saved. Restart required for port change.', 'warning');
+                } else {
+                    showToast('Settings saved successfully!', 'success');
+                }
                 closeSettings();
             } else {
-                showToast('Error saving settings', 'error');
+                showToast('Error saving settings: ' + result.error, 'error');
             }
         })
+
         .catch(err => {
             console.error(err);
             showToast('Failed to save settings', 'error');
@@ -3188,6 +3229,144 @@ def api_settings_interval():
         with open(settings_path, 'w') as f:
             json.dump(settings, f)
         return jsonify({'success': True})
+
+
+@app.route("/api/settings/quality", methods=["GET", "POST"])
+def api_settings_quality():
+    settings_path = os.path.join(appdata_folder, "settings.json")
+    import json
+    
+    if request.method == "POST":
+        data = request.json
+        quality = data.get("quality", "medium")
+        if quality not in ['low', 'medium', 'high']:
+            return jsonify({'success': False, 'error': 'Invalid quality'}), 400
+            
+        set_screenshot_quality(quality)
+        
+        # Save to file
+        try:
+            settings = {}
+            if os.path.exists(settings_path):
+                with open(settings_path, 'r') as f:
+                    content = f.read().strip()
+                    if content:
+                        settings = json.loads(content)
+            
+            settings['screenshot_quality'] = quality
+            
+            with open(settings_path, 'w') as f:
+                json.dump(settings, f, indent=4)
+                
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+            
+    else:
+        return jsonify({'quality': get_screenshot_quality()})
+
+
+@app.route("/api/settings/port", methods=["GET", "POST"])
+def api_settings_port():
+    settings_path = os.path.join(appdata_folder, "settings.json")
+    import json
+    
+    if request.method == "POST":
+        data = request.json
+        try:
+            port = int(data.get("port", 8082))
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid port'}), 400
+            
+        # Save to file
+        try:
+            settings = {}
+            if os.path.exists(settings_path):
+                with open(settings_path, 'r') as f:
+                    content = f.read().strip()
+                    if content:
+                        settings = json.loads(content)
+            
+            settings['server_port'] = port
+            
+            with open(settings_path, 'w') as f:
+                json.dump(settings, f, indent=4)
+                
+            return jsonify({'success': True, 'message': 'Restart required'})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+            
+    else:
+        # Read from file as it's not a dynamic runtime setting
+        port = 8082
+        if os.path.exists(settings_path):
+            try:
+                with open(settings_path, 'r') as f:
+                    content = f.read().strip()
+                    if content:
+                        settings = json.loads(content)
+                        port = settings.get('server_port', 8082)
+            except:
+                pass
+        return jsonify({'port': port})
+
+
+@app.route("/api/settings", methods=["POST"])
+def api_update_settings():
+    """Unified endpoint to update all settings atomically"""
+    settings_path = os.path.join(appdata_folder, "settings.json")
+    import json
+    
+    data = request.json
+    restart_required = False
+    
+    # Load current settings
+    settings = {}
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, 'r') as f:
+                content = f.read().strip()
+                if content:
+                    settings = json.loads(content)
+        except Exception:
+            pass # Start fresh if corrupt
+    
+    # Update Interval
+    if 'interval' in data:
+        interval = int(data['interval'])
+        set_screenshot_interval(interval)
+        settings['screenshot_interval'] = interval
+        
+    # Update Retention
+    if 'retention_days' in data:
+        settings['retention_days'] = int(data['retention_days'])
+        
+    # Update Quality
+    if 'quality' in data:
+        quality = data['quality']
+        if quality in ['low', 'medium', 'high']:
+            set_screenshot_quality(quality)
+            settings['screenshot_quality'] = quality
+            
+    # Update Port
+    if 'port' in data:
+        try:
+            new_port = int(data['port'])
+            old_port = settings.get('server_port', 8082)
+            if new_port != old_port:
+                settings['server_port'] = new_port
+                restart_required = True
+        except ValueError:
+            pass
+
+    # Save atomically
+    try:
+        with open(settings_path, 'w') as f:
+            json.dump(settings, f, indent=4)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    return jsonify({'success': True, 'restart_required': restart_required})
 
 
 if __name__ == "__main__":

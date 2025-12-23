@@ -125,6 +125,18 @@ def get_screenshot_interval() -> int:
     global screenshot_interval
     return screenshot_interval
 
+# Quality Settings
+screenshot_quality = "medium"
+
+def set_screenshot_quality(quality: str):
+    global screenshot_quality
+    if quality in ['low', 'medium', 'high']:
+        screenshot_quality = quality
+
+def get_screenshot_quality() -> str:
+    global screenshot_quality
+    return screenshot_quality
+
 
 def record_screenshots_thread():
     # TODO: fix the error from huggingface tokenizers
@@ -168,7 +180,19 @@ def record_screenshots_thread():
                 # 2. Resize and save image (Always save, regardless of text)
                 image = Image.fromarray(screenshot)
                 width, height = image.size
-                image = image.resize((width // 2, height // 2), Image.LANCZOS)
+                
+                # Quality Settings
+                if screenshot_quality == 'high':
+                    # No resize, lossless
+                    save_kwargs = {'lossless': True}
+                elif screenshot_quality == 'medium':
+                    # 95% resize, 95 quality
+                    image = image.resize((int(width * 0.95), int(height * 0.95)), Image.LANCZOS)
+                    save_kwargs = {'lossless': False, 'quality': 95}
+                else: # low
+                    # 80% resize, 80 quality (default behavior)
+                    image = image.resize((int(width * 0.8), int(height * 0.8)), Image.LANCZOS)
+                    save_kwargs = {'lossless': False, 'quality': 80}
                 
                 timestamp = int(time.time() * 1000000)  # microseconds
                 filename = f"{timestamp}.webp"
@@ -176,8 +200,7 @@ def record_screenshots_thread():
                 image.save(
                     os.path.join(screenshots_path, filename),
                     format="webp",
-                    lossless=False,
-                    quality=50,
+                    **save_kwargs
                 )
                 
                 # 3. Create DB entry (even if text is empty)
