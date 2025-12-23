@@ -473,10 +473,11 @@ app.whenReady().then(() => {
     console.error('❌ Failed to register global shortcut');
   }
 
-  // ESC to hide window
-  globalShortcut.register('Escape', () => {
+  // Listen for hide-window from renderer
+  const { ipcMain } = require('electron');
+  ipcMain.on('hide-window', () => {
     if (mainWindow && mainWindow.isVisible()) {
-      console.log('🔒 ESC pressed - hiding window');
+      console.log('🔒 ESC pressed in app - hiding window');
       hideWindow();
     }
   });

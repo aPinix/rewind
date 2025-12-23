@@ -1516,6 +1516,15 @@ def timeline_v2():
       if (Math.abs(e.deltaX) > 0) e.preventDefault();
     }, {passive: false, capture: true});
     
+    // Global Key Handler
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+         if (window.electronAPI) {
+             window.electronAPI.hideWindow();
+         }
+      }
+    });
+    
     screenshotArea.addEventListener('wheel', e => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 0) {
         e.preventDefault();
