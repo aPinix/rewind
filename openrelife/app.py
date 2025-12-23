@@ -555,7 +555,10 @@ def timeline_v2():
     }
     .timeline-menu-btn {
       position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
-      color: rgba(255,255,255,0.4); cursor: pointer; padding: 8px; border-radius: 50%;
+      color: rgba(255,255,255,0.4); cursor: pointer;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
       transition: all 0.2s;
     }
     .timeline-menu-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
