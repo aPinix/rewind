@@ -1,9 +1,10 @@
 const { app, BrowserWindow, globalShortcut, screen, Tray, Menu, nativeImage, Notification, dialog, systemPreferences, desktopCapturer, shell } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const fs = require('fs');
 
 const OPENRECALL_URL = 'http://127.0.0.1:8082';
+const SERVER_PORT = 8082;
 let mainWindow = null;
 let tray = null;
 let isPaused = false;
@@ -306,7 +307,36 @@ function createTray() {
 let pythonProcess = null;
 let backendLogStream = null;
 
-function startBackend() {
+function killProcessOnPort(port) {
+  return new Promise((resolve) => {
+    // Only verify on macOS/Linux/Unix
+    if (process.platform === 'win32') {
+        resolve();
+        return;
+    }
+
+    exec(`lsof -i :${port} -sTCP:LISTEN -t`, (err, stdout) => {
+      if (err || !stdout) {
+        // No process found or error (e.g. lsof not installed)
+        resolve();
+        return;
+      }
+      const pids = stdout.trim().split('\n');
+      console.log(`Found process(es) on port ${port}: ${pids.join(', ')}. Killing...`);
+      // Kill PIDs
+      exec(`kill -9 ${pids.join(' ')}`, (killErr) => {
+         if (killErr) console.error(`Failed to kill process on port ${port}:`, killErr);
+         else console.log(`Successfully killed process(es) on port ${port}`);
+         resolve();
+      });
+    });
+  });
+}
+
+async function startBackend() {
+  // First, check if port is occupied and kill it
+  await killProcessOnPort(SERVER_PORT);
+
   const isDev = !app.isPackaged;
   // In prod, resourcesPath points to Contents/Resources where we copied openrelife and pyproject.toml
   const projectRoot = isDev ? path.join(__dirname, '..') : process.resourcesPath;
@@ -442,9 +472,9 @@ function stopBackend() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Start backend server
-  startBackend();
+  await startBackend();
 
   // Set app icon (works for dock in dev mode)
   if (process.platform === 'darwin') {
