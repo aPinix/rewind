@@ -451,6 +451,9 @@ app.whenReady().then(() => {
     app.dock.setIcon(path.join(__dirname, 'app-icon.png'));
   }
 
+  // Create Application Menu
+  createMenu();
+
   // Create tray icon first
   createTray();
   
@@ -516,3 +519,82 @@ app.on('before-quit', (event) => {
   // stopBackend(); // will-quit handles it
   // Allow quit only if explicitly requested
 });
+
+function createMenu() {
+  const isMac = process.platform === 'darwin';
+  
+  const template = [
+    // { role: 'appMenu' }
+    ...(isMac ? [{
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { 
+            label: 'Quit OpenReLife',
+            accelerator: 'Command+Q',
+            click: () => { app.isQuitting = true; app.quit(); }
+        }
+      ]
+    }] : []),
+    // { role: 'fileMenu' }
+    {
+      label: 'File',
+      submenu: [
+        { 
+            label: 'Close Window',
+            accelerator: 'CmdOrCtrl+W',
+            click: () => hideWindow()
+        },
+        isMac ? { role: 'close' } : { role: 'quit' }
+      ]
+    },
+    // { role: 'editMenu' }
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'delete' },
+        { role: 'selectAll' }
+      ]
+    },
+    // { role: 'viewMenu' }
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac ? [
+          { type: 'separator' },
+          { role: 'front' },
+          { type: 'separator' },
+          { role: 'window' }
+        ] : [
+          { role: 'close' }
+        ])
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}

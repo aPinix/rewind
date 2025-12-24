@@ -809,7 +809,7 @@ def timeline_v2():
     
     /* Toast notifications */
     .toast-container {
-      position: fixed; top: 80px; right: 20px; z-index: 4000;
+      position: fixed; top: 80px; right: 20px; z-index: 99999 !important;
       display: flex; flex-direction: column; gap: 12px; pointer-events: none;
     }
     .toast {
@@ -1010,6 +1010,38 @@ def timeline_v2():
         font-size: 14px;
       }
     }
+    .jump-to-latest-btn {
+      position: absolute;
+      bottom: 80px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(0, 123, 255, 0.9);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: none; /* Hidden by default */
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateY(0);
+    }
+    .jump-to-latest-btn:hover {
+      background: #007bff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+    .jump-to-latest-btn.show {
+      display: flex;
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.5) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -1071,6 +1103,11 @@ def timeline_v2():
         <div class="text-overlay" id="textOverlay"></div>
       </div>
     </div>
+
+    <!-- Jump to latest button -->
+    <button class="jump-to-latest-btn" id="jumpToLatestBtn" onclick="jumpToLatest()" title="Jump to latest">
+      <i class="bi bi-arrow-right-short" style="font-size: 24px;"></i>
+    </button>
     
     <!-- Timeline -->
     <div class="timeline">
@@ -1263,6 +1300,26 @@ def timeline_v2():
     let currentEntry = null;
     let searchTimeout = null;
     
+    // Jump to latest logic
+    const jumpBtn = document.getElementById('jumpToLatestBtn');
+    
+    function updateJumpButtonVisibility() {
+      const sliderVal = parseInt(slider.value);
+      const isAtLatest = sliderVal === parseInt(slider.max);
+      
+      if (!isAtLatest) {
+        jumpBtn.classList.add('show');
+      } else {
+        jumpBtn.classList.remove('show');
+      }
+    }
+    
+    function jumpToLatest() {
+      slider.value = slider.max;
+      // Manually trigger input event to update display
+      slider.dispatchEvent(new Event('input'));
+    }
+    
     // Deletion mode
     let isDeleteMode = false;
     let deleteStartIndex = -1;
@@ -1346,6 +1403,9 @@ def timeline_v2():
       if (timestamps.length === 0) return;
       const lastKnown = timestamps[0];
       try {
+        // Smart Resume: Check if we are currently at the latest timestamp BEFORE syncing
+        const wasAtLatest = parseInt(slider.value) === parseInt(slider.max);
+
         const response = await fetch(`/api/sync?since=${lastKnown}`);
         const data = await response.json();
         if (data.timestamps && data.timestamps.length > 0) {
@@ -1353,6 +1413,14 @@ def timeline_v2():
           entriesData = {...entriesData, ...data.entries};
           slider.max = timestamps.length - 1;
           console.log(`Synced ${data.timestamps.length} new entries.`);
+          
+          // If we were at the latest, stay at the latest (which is now a new timestamp)
+          if (wasAtLatest) {
+             slider.value = slider.max;
+             updateDisplay(timestamps[0]); // timestamps[0] is the new latest
+          }
+          
+          updateJumpButtonVisibility();
         }
       } catch (e) { console.error("Sync failed", e); }
     }
@@ -1378,6 +1446,7 @@ def timeline_v2():
     let currentAbortController = null;
 
     if (document.visibilityState === 'visible') startSync();
+    updateJumpButtonVisibility();
     
     // Update display
     // Update display
@@ -1454,6 +1523,7 @@ def timeline_v2():
       }
       
       updateDisplay(timestamps[idx]);
+      updateJumpButtonVisibility();
     });
 
     // Prefetching Logic
@@ -1547,6 +1617,8 @@ def timeline_v2():
               deleteEndIndex = idx;
               updateDeleteInfo();
             }
+            
+            updateJumpButtonVisibility();
 
             const ts = timestamps[idx];
             
