@@ -1299,6 +1299,7 @@ def timeline_v2():
     
     let currentEntry = null;
     let searchTimeout = null;
+    let searchController = null;
     
     // Jump to latest logic
     const jumpBtn = document.getElementById('jumpToLatestBtn');
@@ -1806,7 +1807,7 @@ def timeline_v2():
         return;
       }
       
-      searchTimeout = setTimeout(() => performSearch(q), 300);
+      searchTimeout = setTimeout(() => performSearch(q), 600);
     });
 
     searchClear.addEventListener('click', () => {
@@ -1816,23 +1817,31 @@ def timeline_v2():
     });
     
     async function performSearch(q) {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      const results = await response.json();
-      
-      if (results.length === 0) {
-        searchResults.innerHTML = '<p style="color: rgba(255,255,255,0.5); text-align: center;">No results found</p>';
-      } else {
-        searchResults.innerHTML = '<div class="results-grid">' + 
-          results.map(r => `
-            <div class="result-card" onclick="goToTimestamp(${r.timestamp})">
-              <img src="/static/${r.timestamp}.webp" alt="">
-              <div class="result-time">${new Date(r.timestamp/1000).toLocaleString('en-US', {
-                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-              })}</div>
-            </div>
-          `).join('') + '</div>';
+      if (searchController) searchController.abort();
+      searchController = new AbortController();
+
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: searchController.signal });
+        const results = await response.json();
+        
+        if (results.length === 0) {
+          searchResults.innerHTML = '<p style="color: rgba(255,255,255,0.5); text-align: center;">No results found</p>';
+        } else {
+          searchResults.innerHTML = '<div class="results-grid">' + 
+            results.map(r => `
+              <div class="result-card" onclick="goToTimestamp(${r.timestamp})">
+                <img src="/static/${r.timestamp}.webp" alt="">
+                <div class="result-time">${new Date(r.timestamp/1000).toLocaleString('en-US', {
+                  month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+                })}</div>
+              </div>
+            `).join('') + '</div>';
+        }
+        searchResults.classList.add('show');
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('Search error:', err);
       }
-      searchResults.classList.add('show');
     }
     
     function goToTimestamp(ts) {
@@ -2297,7 +2306,10 @@ def api_search():
             if matched > 0:
                 keyword_boost = 0.3 * (matched / len(query_words))
         
-        scores.append((i, semantic_score + keyword_boost, keyword_boost > 0))
+        # Add recency bias (approx 0.003 points per year)
+        recency_score = entry.timestamp / 1e10
+        
+        scores.append((i, semantic_score + keyword_boost + recency_score, keyword_boost > 0))
     
     scores.sort(key=lambda x: (x[2], x[1]), reverse=True)
     
@@ -2969,8 +2981,11 @@ def search():
             if matched_words > 0:
                 keyword_boost = 0.3 * (matched_words / len(query_words))
         
+        # Add recency bias (approx 0.003 points per year)
+        recency_score = entry.timestamp / 1e10
+        
         # Combined score
-        final_score = semantic_score + keyword_boost
+        final_score = semantic_score + keyword_boost + recency_score
         scores.append((i, final_score, keyword_boost > 0))
     
     # Sort by score, prioritizing entries with keyword matches
