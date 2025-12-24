@@ -534,6 +534,10 @@ app.whenReady().then(async () => {
   const ret = globalShortcut.register('CommandOrControl+Shift+Space', () => {
     console.log('🎯 Hotkey pressed: Cmd+Shift+Space');
     if (mainWindow && mainWindow.isVisible()) {
+      // If already visible, hide and show again to move to current virtual desktop
+      console.log('♻️ Refreshing window position...');
+      hideWindow();
+      setTimeout(showWindow, 300);
       return;
     }
     showWindow();
