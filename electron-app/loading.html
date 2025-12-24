@@ -129,6 +129,15 @@
       <div class="progress-bar"></div>
     </div>
   </div>
+  <script>
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (window.electronAPI && window.electronAPI.hideWindow) {
+          window.electronAPI.hideWindow();
+        }
+      }
+    });
+  </script>
 </body>
 
 </html>

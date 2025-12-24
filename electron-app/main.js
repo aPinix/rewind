@@ -3,8 +3,8 @@ const path = require('path');
 const { spawn, exec } = require('child_process');
 const fs = require('fs');
 
-const OPENRECALL_URL = 'http://127.0.0.1:8082';
-const SERVER_PORT = 8082;
+let serverPort = 8082;
+let openRecallUrl = `http://127.0.0.1:${serverPort}`;
 let mainWindow = null;
 let tray = null;
 let isPaused = false;
@@ -20,16 +20,50 @@ function hasScreenAccess() {
   return process.platform !== 'darwin' || systemPreferences.getMediaAccessStatus('screen') === 'granted';
 }
 
+function getBackendPort() {
+  try {
+    let settingsPath;
+    if (process.platform === 'darwin') {
+        // Backend uses lowercase 'openrelife'
+        settingsPath = path.join(app.getPath('home'), 'Library', 'Application Support', 'openrelife', 'settings.json');
+    } else if (process.platform === 'win32') {
+        settingsPath = path.join(process.env.APPDATA, 'openrelife', 'settings.json');
+    } else {
+        settingsPath = path.join(app.getPath('home'), '.local', 'share', 'openrelife', 'settings.json');
+    }
+
+    if (fs.existsSync(settingsPath)) {
+        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        if (settings.server_port) {
+            const port = parseInt(settings.server_port, 10);
+            if (!isNaN(port)) {
+                console.log(`Found configured port in settings: ${port}`);
+                return port;
+            }
+        }
+    }
+  } catch (err) {
+      console.error('Failed to read settings for port:', err);
+  }
+  console.log('Using default port 8082');
+  return 8082;
+}
+
+function updateServerConfig() {
+    serverPort = getBackendPort();
+    openRecallUrl = `http://127.0.0.1:${serverPort}`;
+}
+
 function loadApp(retryCount = 0) {
   if (!mainWindow) return;
 
-  if (retryCount === 0) console.log(`Attempting to connect to ${OPENRECALL_URL}...`);
+  if (retryCount === 0) console.log(`Attempting to connect to ${openRecallUrl}...`);
 
-  fetch(OPENRECALL_URL)
+  fetch(openRecallUrl)
     .then(res => {
       if (res.ok) {
         console.log('✅ Backend connected! Loading app...');
-        mainWindow.loadURL(OPENRECALL_URL);
+        mainWindow.loadURL(openRecallUrl);
         if (process.platform === 'darwin' && hasScreenAccess()) {
            mainWindow.setSimpleFullScreen(true);
         }
@@ -165,7 +199,7 @@ function hideWindow() {
 
 async function checkRecordingStatus(retryCount = 0) {
   try {
-    const res = await fetch(`${OPENRECALL_URL}/api/recording-status`);
+    const res = await fetch(`${openRecallUrl}/api/recording-status`);
     if (!res.ok) throw new Error('Status check failed');
     const data = await res.json();
     isPaused = data.paused;
@@ -184,7 +218,7 @@ async function checkRecordingStatus(retryCount = 0) {
 async function toggleRecording() {
   try {
     const endpoint = isPaused ? '/api/resume-recording' : '/api/pause-recording';
-    const res = await fetch(`${OPENRECALL_URL}${endpoint}`, { method: 'POST' });
+    const res = await fetch(`${openRecallUrl}${endpoint}`, { method: 'POST' });
     const data = await res.json();
     isPaused = data.paused;
     updateTrayMenu();
@@ -334,8 +368,11 @@ function killProcessOnPort(port) {
 }
 
 async function startBackend() {
+  // Update port config before starting
+  updateServerConfig();
+  
   // First, check if port is occupied and kill it
-  await killProcessOnPort(SERVER_PORT);
+  await killProcessOnPort(serverPort);
 
   const isDev = !app.isPackaged;
   // In prod, resourcesPath points to Contents/Resources where we copied openrelife and pyproject.toml
