@@ -57,6 +57,8 @@
       "package.json",
       "tray-iconTemplate.png",
       "tray-iconTemplate@2x.png",
+      "tray-icon-pausedTemplate.png",
+      "tray-icon-pausedTemplate@2x.png",
       "app-icon.png",
       "app-icon.svg",
       "loading.html"
