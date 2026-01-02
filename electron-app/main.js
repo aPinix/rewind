@@ -415,7 +415,7 @@ async function startBackend() {
   
   console.log('Spawning backend with PATH:', env.PATH);
 
-  pythonProcess = spawn('uv', ['run', '-m', 'openrelife.app'], {
+  pythonProcess = spawn('uv', ['run', 'python', '-m', 'openrelife.app'], {
     cwd: projectRoot,
     shell: true,
     env: env,

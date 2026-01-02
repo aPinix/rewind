@@ -46,7 +46,7 @@ start_backend() {
     
     echo "🚀 Starting OpenReLife backend..."
     cd "$BACKEND_DIR"
-    nohup uv run -m openrelife.app > "$BACKEND_LOG" 2>&1 &
+    nohup uv run python -m openrelife.app > "$BACKEND_LOG" 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > "$BACKEND_PID_FILE"
     
