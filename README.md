@@ -37,7 +37,7 @@ OpenReLife offers several key advantages over closed-source alternatives:
 
 ## Status of the project
 
-The software is currently in active development (with a huge help from AI agents). It allows for a good set of features, but has been strictly tested on **Apple Silicon (M1/M2/M3)** machines only.
+The software is currently in active development (with a huge help from AI agents). It allows for a good set of features, but has been strictly tested on an **Apple Silicon (M1)** machine only.
 
 ## Features
 
