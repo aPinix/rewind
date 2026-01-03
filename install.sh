@@ -23,8 +23,15 @@ echo "✅ uv found"
 echo ""
 echo "📦 Installing Backend Dependencies (via uv)..."
 cd "$SCRIPT_DIR"
+if [ $? != 0 ]; then
+    echo "❌ Failed to change directory to $SCRIPT_DIR"
+    exit 1
+fi
+if [ -d .venv ]; then
+    echo "Removing old .venv..."
+    rm -rf .venv
+fi
 uv sync
-
 
 # 3. Install Frontend Dependencies (Electron)
 echo ""
@@ -33,7 +40,7 @@ cd "$SCRIPT_DIR/electron-app"
 if [ ! -d "node_modules" ]; then
     npm install
 else
-    echo "   node_modules exists, skipping npm install (run manually if needed)"
+    echo "node_modules exists, skipping npm install (run manually if needed)"
 fi
 
 # 4. Build Application
