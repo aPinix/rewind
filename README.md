@@ -11,6 +11,9 @@ Please read the readme below for more details.**_
 
 **Do you like this project?** Show your support by starring it! ⭐️ Thank you!
 
+> [!IMPORTANT]  
+> **Platform Support**: This application is currently **ONLY** tested and verified on **macOS with Apple Silicon (ARM64)**. Support for Intel Macs, Windows, and Linux is experimental, and needs testing; help is much appreciated.
+
 # Take Control of Your Digital Memory
 
 OpenReLife is a fully open-source alternative to proprietary solutions like Microsoft's Windows Recall or Limitless' Rewind.ai, forked from [OpenRecall](https://github.com/openrecall/openrecall). With OpenReLife, you can easily access your digital history, enhancing your memory and productivity without compromising your privacy.
@@ -28,13 +31,13 @@ OpenReLife captures your digital history through regularly taken screenshots. Th
 OpenReLife offers several key advantages over closed-source alternatives:
 
 - **Transparency**: OpenReLife is 100% open-source, allowing you to audit the source code for potential backdoors or privacy-invading features.
-- **Cross-platform Support**: OpenReLife aims to work on Windows, macOS, and Linux, giving you the freedom to use it on your preferred operating system. (macOS is currently the only tested platform)
+- **Cross-platform Support**: OpenReLife aims to work on Windows, macOS, and Linux. **Currently, the application is officially tested and supported ONLY on macOS Apple Silicon (ARM64).**
 - **Privacy-focused**: Your data is stored locally on your device, no internet connection or cloud is required. 
 - **Smooth experience**: OpenReLife is designed to be smooth and easy to use, with a simple and intuitive interface.
 
 ## Status of the project
 
-The software is currently in active development (with a huge help from AI agents), it is yet working fine in all its base features (tested on Macbook Pro M1 with MacOS Tahoe 26.2).
+The software is currently in active development (with a huge help from AI agents). It allows for a good set of features, but has been strictly tested on **Apple Silicon (M1/M2/M3)** machines only.
 
 ## Features
 
@@ -47,7 +50,7 @@ The software is currently in active development (with a huge help from AI agents
 ## Get Started
  
 ### Prerequisites
-- macOS (Windows/Linux support needs testing)
+- macOS (Apple Silicon / ARM64 required; Intel/Windows/Linux support needs testing)
 - [uv](https://astral.sh/uv) (needed, for backend's Python dependency management)
 - [Node.js](https://nodejs.org/) & npm (facultative, needed to build the Electron app)
 - Python 3.11+ (should be installed and managed by uv)
